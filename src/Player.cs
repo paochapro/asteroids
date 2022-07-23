@@ -9,8 +9,8 @@ using static Utils;
 
 internal class Player : Entity
 {
-    private static Texture2D playerTexture = Assets.LoadTexture("player");
-    private static Point size = new(64, 64);
+    private static readonly Texture2D playerTexture = Assets.LoadTexture("player");
+    public static readonly Point size = new(64,64);
     
     private Angle angle;
     private float rotationSpeed = 350f;
@@ -30,8 +30,6 @@ internal class Player : Entity
         
         velocity.X = clamp(velocity.X, -maxVelocity, maxVelocity);
         velocity.Y = clamp(velocity.Y, -maxVelocity, maxVelocity);
-        
-        Console.WriteLine("Velocity: " + velocity.X + " " + velocity.Y);
         
         hitbox.Offset(velocity * dt);
         
@@ -62,7 +60,7 @@ internal class Player : Entity
         
         if(Input.Pressed(Keys.Space))
         {
-            new Bullet(hitbox.Position + new Vector2(hitbox.Width * 0.5f, hitbox.Height * 0.5f), angle);
+            Bullet.Add(hitbox.Position + new Vector2(hitbox.Width * 0.5f, hitbox.Height * 0.5f), angle);
         }
     }
     
@@ -73,7 +71,7 @@ internal class Player : Entity
         Vector2 origin = half;
         final.Location += half.ToPoint();
 
-        if (MainGame.Debug)
+        if (MainGame.DebugMode)
         {
             spriteBatch.DrawRectangle(hitbox, Color.Orange);
             spriteBatch.DrawPoint(hitbox.Position, Color.White);
@@ -84,6 +82,6 @@ internal class Player : Entity
     }
 
     
-    public Player(Point pos) : base(new RectangleF(pos, size), playerTexture)
+    public Player(Point2 pos) : base(new RectangleF(pos, size), playerTexture)
     {}
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System.Security.Claims;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Audio;
@@ -18,20 +19,20 @@ class MainGame : Game
     private const string gameName = "Asteroids";
     private const float defaultVolume = 0.3f;
     private const bool resizable = false;
+
+    private static OrthographicCamera camera;
     
     //General stuff
     public static GraphicsDeviceManager Graphics => graphics;
-    static GraphicsDeviceManager graphics;
-    static SpriteBatch spriteBatch;
+    private static GraphicsDeviceManager graphics;
+    private static SpriteBatch spriteBatch;
 
-    private static Vector2 camera;
-    public static Vector2 Camera => camera;
-    public static bool Debug { get; private set; } = true;
+    public static bool DebugMode { get; private set; } = true;
 
     public enum GameState { Menu, Game }
 
-    private GameState gameState;
-    public GameState State
+    private static GameState gameState;
+    public static GameState State
     {
         get => gameState;
         private set
@@ -47,6 +48,7 @@ class MainGame : Game
         [GameState.Game] = DrawGame,
     };
     
+
     //Game
     public static Player Player => player;
     private static Player player;
@@ -68,7 +70,12 @@ class MainGame : Game
         UI.window = Window;
         CreateUi();
         
-        player = new Player(new Point(400,400));
+        player = new Player(center(screen, Player.size));
+        
+        Asteroid.Add(new Point(500, 400), true);
+        Asteroid.Add(new Point(124, 421), true);
+        Asteroid.Add(new Point(212, 361), true);
+        Asteroid.Add(new Point(30, 135), false);
         
         State = GameState.Game;
     }
@@ -78,6 +85,8 @@ class MainGame : Game
         Window.AllowUserResizing = resizable;
         Window.Title = gameName;
         IsMouseVisible = true;
+        camera = new OrthographicCamera(GraphicsDevice);
+        
         ChangeScreenSize(defaultScreenSize);
 
         SoundEffect.MasterVolume = defaultVolume;
@@ -94,7 +103,7 @@ class MainGame : Game
     {
         //Exit
         if (Input.IsKeyDown(Keys.Escape)) Exit();
-        
+
         UI.UpdateElements(Input.Keys, Input.Mouse);
         Event.ExecuteEvents(gameTime);
 
@@ -104,7 +113,6 @@ class MainGame : Game
             Controls();
         }
 
-        
         Input.CycleEnd();
 
         base.Update(gameTime);
@@ -113,7 +121,10 @@ class MainGame : Game
     private static void Controls()
     {
         if (Input.Pressed(Keys.OemTilde)) 
-            Debug = !Debug;
+            DebugMode = !DebugMode;
+
+        float zoom = Input.Mouse.ScrollWheelValue / 2000f + 1f;
+        camera.Zoom = clamp(zoom, camera.MinimumZoom, camera.MaximumZoom);
     }
     //Draw
     private static void DrawGame()
@@ -128,11 +139,21 @@ class MainGame : Game
     protected override void Draw(GameTime gameTime)
     {
         graphics.GraphicsDevice.Clear(Color.Black);
-
-        spriteBatch.Begin();
+        
+        spriteBatch.Begin(transformMatrix: camera.GetViewMatrix());
         {
             drawMethods[State].Invoke();
             UI.DrawElements(spriteBatch);
+
+            if (DebugMode)
+            {
+                foreach (var a in Asteroid.List)
+                {
+                    Vector2 origin = (Vector2)a.Hitbox.Center;
+                    Vector2 dir = a.Dir.ToUnitVector();
+                    spriteBatch.DrawLine(origin, origin + dir * a.Radius, Color.Red);
+                }
+            }
         }
         spriteBatch.End();
 

@@ -1,6 +1,4 @@
-﻿using System.Net.NetworkInformation;
-using System.Runtime.InteropServices.ComTypes;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 
@@ -9,29 +7,32 @@ namespace Asteroids;
 //Static
 abstract partial class Entity
 {
+    private static int lastUpdatedEntity;
     private static List<Entity> ents = new();
-    private static List<Entity> destroyed = new();
-    private static List<Entity> added = new();
-    
+
     public static void UpdateAll(GameTime gameTime)
     {
-        added.ForEach(ent => ents.Add(ent));
-        added.Clear();
+        ents.ForEach(ent => ent.updated = false);
+        lastUpdatedEntity = -1;
         
-        ents.ForEach(ent => ent.Update(gameTime));
-        
-        destroyed.ForEach(ent => ents.Remove(ent));
-        destroyed.Clear();
+        while(lastUpdatedEntity+1 < ents.Count)
+        {
+            ents[++lastUpdatedEntity].updated = true;
+            ents[lastUpdatedEntity].Update(gameTime);
+        }
     }
     public static void DrawAll(SpriteBatch spriteBatch)
     {
-        ents.ForEach(ent => ent.Draw(spriteBatch));
+        foreach (Entity ent in ents)
+            ent.Draw(spriteBatch);
     }
 }
 
 //Main
 abstract partial class Entity
 {
+    private bool updated;
+    
     protected RectangleF hitbox;
     protected Texture2D texture;
     
@@ -42,10 +43,7 @@ abstract partial class Entity
 
     protected virtual void Draw(SpriteBatch spriteBatch)
     {
-        Rectangle final = (Rectangle)hitbox;
-        final.Location -= MainGame.Camera.ToPoint();
-
-        spriteBatch.Draw(texture, final, Color.White);
+        spriteBatch.Draw(texture, (Rectangle)hitbox, Color.White);
     }
     
     protected void InBounds()
@@ -61,15 +59,28 @@ abstract partial class Entity
         if (hitbox.Y > sh) hitbox.Y = -h;
     }
     
-    public Entity(RectangleF hitbox, Texture2D texture)
+    protected Entity(RectangleF hitbox, Texture2D texture)
     {
         this.hitbox = hitbox;
         this.texture = texture;
-        added.Add(this);
+        ents.Add(this);
     }
 
     public Entity() : this(new RectangleF(0, 0, 0, 0), null) { }
 
-    public void Destroy() => destroyed.Add(this);
+
+    public virtual void Destroy() => EntityDestroy();
+    
+    protected void DestroyWithList<T>(List<T> list) where T : Entity
+    {
+        list.Remove(this as T);
+        EntityDestroy();
+    }
+    
+    protected void EntityDestroy()
+    {
+        if (updated) --lastUpdatedEntity;
+        ents.Remove(this);
+    }
 }
 

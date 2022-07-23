@@ -136,7 +136,7 @@ internal class Button : UI
         float scale = 1f;
         
         Vector2 measure = Font.MeasureString(text) * scale;
-        Vector2 position = new Vector2(center(rect).X - measure.X / 2, center(rect).Y - measure.Y / 2);
+        Vector2 position = new Vector2(rect.Center.X - measure.X / 2, rect.Center.Y - measure.Y / 2);
         
         spriteBatch.DrawString(Font, text, position, mainColor, 0, new Vector2(0, 0), scale, SpriteEffects.None, 0);
     }
@@ -206,7 +206,7 @@ internal class CheckBox : UI
 
         if(isChecked)
         {
-            spriteBatch.DrawCircle(new CircleF(center(box).ToPoint(), 7f), 32, mainColor, 7);
+            spriteBatch.DrawCircle(new CircleF(box.Center, 7f), 32, mainColor, 7);
         }
     }
 }

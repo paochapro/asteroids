@@ -7,7 +7,7 @@ using static Utils;
 
 //Debug
 class DebugLine : Entity
-{
+{    
     public Vector2 p1;
     public Vector2 p2;
     public Color color;
@@ -27,10 +27,7 @@ class DebugLine : Entity
     { }
     protected override void Draw(SpriteBatch spriteBatch)
     {
-        if (!MainGame.Debug) return;
-
-        Vector2 p1 = this.p1 - MainGame.Camera;
-        Vector2 p2 = this.p2 - MainGame.Camera;
+        if (!MainGame.DebugMode) return;
 
         //Line
         spriteBatch.DrawLine(p1, p2, color, 1);
@@ -51,5 +48,5 @@ class DebugLine : Entity
         endingP2 = new(p2.X + 4, p2.Y);
         spriteBatch.DrawLine(endingP1, endingP2, color, 1);
     }
-    protected override void Update(GameTime gameTime) { }
+    protected override void Update(GameTime gameTime) {}
 }
