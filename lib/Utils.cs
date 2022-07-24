@@ -113,4 +113,6 @@ internal static class Utils
     public static double avg(params double[] values) => values.Average();
     public static int Round(double value) => (int)Math.Round(value);
     public static int Round(float value) => (int)Math.Round(value);
+
+    public static Point2 Center(this Point2 p1, Point2 p2) => new Point2( (p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
 }

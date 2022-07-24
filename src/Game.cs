@@ -69,13 +69,19 @@ class MainGame : Game
         UI.Font = Content.Load<SpriteFont>("bahnschrift");
         UI.window = Window;
         CreateUi();
+
+        player = new Player(Point2.Zero);
+
+        Reset();
         
-        player = new Player(center(screen, Player.size));
-        
-        Asteroid.Add(new Point(500, 400), true);
-        Asteroid.Add(new Point(124, 421), true);
-        Asteroid.Add(new Point(212, 361), true);
-        Asteroid.Add(new Point(30, 135), false);
+        Asteroid.Add();
+        Asteroid.Add();
+        Asteroid.Add();
+        Asteroid.Add();
+        Asteroid.Add();
+        Asteroid.Add();
+        Asteroid.Add();
+        Asteroid.Add();
         
         State = GameState.Game;
     }
@@ -94,8 +100,9 @@ class MainGame : Game
         base.Initialize();
     }
 
-    private static void Reset()
+    public static void Reset()
     {
+        player.Position = center(screen, Player.size);
     }
 
     //Main
@@ -136,6 +143,8 @@ class MainGame : Game
     {
     }
 
+    Vector2 v1 = new(100,50);
+    Vector2 v2 = new(100,80);
     protected override void Draw(GameTime gameTime)
     {
         graphics.GraphicsDevice.Clear(Color.Black);
@@ -150,9 +159,10 @@ class MainGame : Game
                 foreach (var a in Asteroid.List)
                 {
                     Vector2 origin = (Vector2)a.Hitbox.Center;
-                    Vector2 dir = a.Dir.ToUnitVector();
-                    spriteBatch.DrawLine(origin, origin + dir * a.Radius, Color.Red);
+                    spriteBatch.DrawLine(origin, origin + a.Dir * a.Radius, Color.Red);
                 }
+
+                spriteBatch.DrawCircle( player.Hitbox.Center, Player.collisionRadius, 16, Color.Green);
             }
         }
         spriteBatch.End();

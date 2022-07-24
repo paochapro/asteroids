@@ -7,48 +7,54 @@ using static Utils;
 
 class Asteroid : Entity
 {
-    public static void Add(Point2 pos, bool small) => list.Add(new Asteroid(pos, small));
+    public static void Add() => list.Add(new Asteroid(3));
     
     private static List<Asteroid> list = new();
     public static List<Asteroid> List => list;
-    
-    private static readonly Point sizeBig = new(64, 64);
-    private static readonly Point sizeSmall = new(32, 32);
-    private static readonly Texture2D bigTexture = Assets.LoadTexture("asteroid_big");
-    private static readonly Texture2D smallTexture = Assets.LoadTexture("asteroid_small");
-    private const float smallRadius = 16; 
-    private const float bigRadius = 32;
+
+    private static readonly int biggestSize = 64+32;
+    private const float biggestRadius = 32+16;
     private const float speed = 170f;
-    
+    private const float boundsImmersion = 0.9f;
+
     private float dt;
     public float Radius { get; private set; }
-    private Angle direction;
-    public Angle Dir => direction;
+    private Angle angle;
+    public Vector2 Dir => angle.ToUnitVector();
     
-    public Asteroid(Point2 pos, bool small)
-        : base( new RectangleF(pos, small ? sizeSmall : sizeBig), /*small ? smallTexture : bigTexture*/ null)
+    private Asteroid(int smaller)
+        : base( new RectangleF(Point2.NaN, new Point2(biggestSize / smaller, biggestSize / smaller)), null)
     {
-        Radius = small ? smallRadius : bigRadius;
-        direction = new Angle(Random(0,360), AngleType.Degree);
+        int randomX = Random(0-(int)(hitbox.Size.Width * boundsImmersion), MainGame.Screen.X);
+        int randomY = Random(0-(int)(hitbox.Size.Height * boundsImmersion), MainGame.Screen.Y);
+        hitbox.Position = new Point2(randomX, randomY);
+        
+        Radius = biggestRadius / smaller;
+        angle = new Angle(Random(0,360), AngleType.Degree);
     }
     
     private void Move()
     {
-        float x = (float)Math.Cos(direction.Radians);
-        float y = (float)-Math.Sin(direction.Radians);
-        hitbox.Offset(new Vector2(x,y) * speed * dt);
+        hitbox.Offset(Dir * speed * dt);
     }
     
     protected override void Update(GameTime gameTime)
     {
         dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         Move();
+        InBounds(boundsImmersion);
     }
-
+    
+    private const float drawThickness = 2f;
+    private const int drawSides = 8;
     protected override void Draw(SpriteBatch spriteBatch)
     {
-        spriteBatch.DrawCircle(hitbox.Center, Radius, 16, Color.White, 2f);
+        spriteBatch.DrawCircle(hitbox.Center, Radius, drawSides, Color.White, drawThickness);
     }
 
-    public override void Destroy() => DestroyWithList(list);
+    public override void Destroy()
+    {
+        list.Remove(this);
+        base.Destroy();
+    }
 }

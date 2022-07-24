@@ -9,15 +9,16 @@ class Bullet : Entity
 {
     private static readonly Point size = new(2, 2);
     private const float speed = 500f;
+    private const float lifeTime = 1f;
+    private const float boundsImmersion = 1f;
     
     private static List<Bullet> list = new();
     public static List<Bullet> List => list;
 
     public static void Add(Point2 pos, Angle direction) => list.Add(new Bullet(pos, direction));
 
-    private Angle direction;
+    private Angle angle;
     private float dt;
-    private const float lifeTime = 1f;
 
     private void CheckAsteroidsHit()
     {
@@ -36,16 +37,14 @@ class Bullet : Entity
     
     private void Move()
     {
-        float x = (float)Math.Cos(direction.Radians);
-        float y = (float)-Math.Sin(direction.Radians);
-        hitbox.Offset(new Vector2(x,y) * speed * dt);
+        hitbox.Offset(angle.ToUnitVector() * speed * dt);
     }
 
     protected override void Update(GameTime gameTime)
     {
         dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         Move();
-        InBounds();
+        InBounds(boundsImmersion);
         CheckAsteroidsHit();
     }
 
@@ -54,11 +53,15 @@ class Bullet : Entity
         spriteBatch.FillRectangle(hitbox, Color.White);
     }
     
-    private Bullet(Vector2 pos, Angle direction) : base(new RectangleF(pos, size), null)
+    private Bullet(Vector2 pos, Angle angle) : base(new RectangleF(pos, size), null)
     {
-        this.direction = direction;
+        this.angle = angle;
         Event.Add(Destroy, lifeTime);
     }
 
-    public override void Destroy() => DestroyWithList(list);
+    public override void Destroy()
+    {
+        list.Remove(this);
+        base.Destroy();
+    }
 }
