@@ -9,7 +9,7 @@ abstract partial class Entity
 {
     private static int lastUpdatedEntity;
     private static List<Entity> ents = new();
-    public static List<Entity> List => ents;
+    public static List<Entity> All => ents;
 
     public static void UpdateAll(GameTime gameTime)
     {
@@ -26,6 +26,11 @@ abstract partial class Entity
     {
         foreach (Entity ent in ents)
             ent.Draw(spriteBatch);
+    }
+    public static void RemoveEntity(Entity ent)
+    {
+        if (ent.updated) --lastUpdatedEntity;
+        ents.Remove(ent);
     }
 }
 
@@ -56,11 +61,7 @@ abstract partial class Entity
 
     public Entity() : this(new RectangleF(0, 0, 0, 0), null) { }
 
-    public virtual void Destroy()
-    {
-        if (updated) --lastUpdatedEntity;
-        ents.Remove(this);
-    }
+    public virtual void Destroy() {}
     
     protected void InBounds(float immersion)
     {
@@ -76,60 +77,24 @@ abstract partial class Entity
     }
 }
 
-/*class Group<T> where T : Entity
+class Group<T> where T : Entity
 {
-    protected Group() {}
-    protected static Entities ents;
-    
-    protected List<T> list = new();
-    public List<T> All => list;
-    public int Count => list.Count;
+    private static List<T> list = new();
+    public static IEnumerable<T> All => list;
 
-    public Group(Entities entities) => ents = entities;
- 
-    public void Clear() => list.Clear();
+    public static int Count => list.Count;
+    public static T Get(int i) => list[i];
 
-    public void Add(T ent)
-    {
-        list.Add(ent);
-        ents.Add(ent);
-    }
-    public void Remove(T ent)
-    {
-        list.Remove(ent);
-        ents.Remove(ent);
-    }
-}*/
-
-
-/*
-class Entities : Group<Entity>
-{
-    private static int lastUpdatedEntity;
+    public static void Add(T obj) => list.Add(obj);
     
-    public static Entities Create()
+    public static void Remove(T obj)
     {
-        if (ents == null) ents = new Entities();
-        return ents;
+        list.Remove(obj);
+        Entity.RemoveEntity(obj);
     }
-    
-    private Entities() {}
-    
-    public void UpdateAll(GameTime gameTime)
+    public static void Clear()
     {
-        list.ForEach(ent => ent.updated = false);
-        lastUpdatedEntity = -1;
-        
-        while(lastUpdatedEntity+1 < ents.Count)
-        {
-            list[++lastUpdatedEntity].updated = true;
-            list[lastUpdatedEntity].Update(gameTime);
-        }
-    }
-    public void DrawAll(SpriteBatch spriteBatch)
-    {
-        foreach (Entity ent in list)
-            ent.Draw(spriteBatch);
+        list.ForEach(obj => Entity.RemoveEntity(obj));
+        list.Clear();
     }
 }
-*/

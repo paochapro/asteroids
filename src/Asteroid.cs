@@ -5,13 +5,13 @@ using MonoGame.Extended;
 namespace Asteroids;
 using static Utils;
 
+class Asteroids : Group<Asteroid>
+{
+    public static void Add() => Add(new Asteroid(1));
+}
+
 class Asteroid : Entity
 {
-    public static void Add() => list.Add(new Asteroid(3));
-    
-    private static List<Asteroid> list = new();
-    public static List<Asteroid> List => list;
-
     private static readonly int biggestSize = 64+32;
     private const float biggestRadius = 32+16;
     private const float speed = 170f;
@@ -22,7 +22,7 @@ class Asteroid : Entity
     private Angle angle;
     public Vector2 Dir => angle.ToUnitVector();
     
-    private Asteroid(int smaller)
+    public Asteroid(int smaller)
         : base( new RectangleF(Point2.NaN, new Point2(biggestSize / smaller, biggestSize / smaller)), null)
     {
         int randomX = Random(0-(int)(hitbox.Size.Width * boundsImmersion), MainGame.Screen.X);
@@ -52,9 +52,5 @@ class Asteroid : Entity
         spriteBatch.DrawCircle(hitbox.Center, Radius, drawSides, Color.White, drawThickness);
     }
 
-    public override void Destroy()
-    {
-        list.Remove(this);
-        base.Destroy();
-    }
+    public override void Destroy() => Asteroids.Remove(this);
 }

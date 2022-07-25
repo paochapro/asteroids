@@ -52,7 +52,7 @@ internal class Player : Entity
     
     private void AsteroidCollision()
     {
-        foreach (Asteroid asteroid in Asteroid.List)
+        foreach (Asteroid asteroid in Asteroids.All)
         {
             float distToAsteroid = Vector2.Distance(asteroid.Hitbox.Center, hitbox.Center);
             
@@ -85,7 +85,7 @@ internal class Player : Entity
         
         if(Input.Pressed(Keys.Space))
         {
-            Bullet.Add(hitbox.Position + new Vector2(hitbox.Width * 0.5f, hitbox.Height * 0.5f), angle);
+            Bullets.Add(hitbox.Position + new Vector2(hitbox.Width * 0.5f, hitbox.Height * 0.5f), angle);
         }
     }
     

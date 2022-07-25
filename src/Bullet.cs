@@ -5,6 +5,11 @@ using MonoGame.Extended.Timers;
 
 namespace Asteroids;
 
+class Bullets : Group<Bullet>
+{
+    public static void Add(Point2 pos, Angle direction) => Add(new Bullet(pos, direction));
+}
+
 class Bullet : Entity
 {
     private static readonly Point size = new(2, 2);
@@ -12,25 +17,21 @@ class Bullet : Entity
     private const float lifeTime = 1f;
     private const float boundsImmersion = 1f;
     
-    private static List<Bullet> list = new();
-    public static List<Bullet> List => list;
-
-    public static void Add(Point2 pos, Angle direction) => list.Add(new Bullet(pos, direction));
-
     private Angle angle;
     private float dt;
 
     private void CheckAsteroidsHit()
     {
-        for (int i = 0; i < Asteroid.List.Count; ++i)
+        for (int i = 0; i < Asteroids.Count; ++i)
         {
-            Asteroid asteroid = Asteroid.List[i];
+            Asteroid asteroid = Asteroids.Get(i);
             float dist = Vector2.Distance(hitbox.Center, asteroid.Hitbox.Center);
 
             if (dist < asteroid.Radius)
             {
                 asteroid.Destroy();
                 this.Destroy();
+                return;
             }
         }
     }
@@ -53,15 +54,11 @@ class Bullet : Entity
         spriteBatch.FillRectangle(hitbox, Color.White);
     }
     
-    private Bullet(Vector2 pos, Angle angle) : base(new RectangleF(pos, size), null)
+    public Bullet(Vector2 pos, Angle angle) : base(new RectangleF(pos, size), null)
     {
         this.angle = angle;
         Event.Add(Destroy, lifeTime);
     }
 
-    public override void Destroy()
-    {
-        list.Remove(this);
-        base.Destroy();
-    }
+    public override void Destroy() => Bullets.Remove(this);
 }

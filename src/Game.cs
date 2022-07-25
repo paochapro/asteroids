@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Audio;
@@ -73,16 +72,7 @@ class MainGame : Game
         player = new Player(Point2.Zero);
 
         Reset();
-        
-        Asteroid.Add();
-        Asteroid.Add();
-        Asteroid.Add();
-        Asteroid.Add();
-        Asteroid.Add();
-        Asteroid.Add();
-        Asteroid.Add();
-        Asteroid.Add();
-        
+
         State = GameState.Game;
     }
 
@@ -103,6 +93,10 @@ class MainGame : Game
     public static void Reset()
     {
         player.Position = center(screen, Player.size);
+        Asteroids.Clear();
+        
+        for(int i = 0; i < 8; ++i)
+            Asteroids.Add();
     }
 
     //Main
@@ -156,7 +150,8 @@ class MainGame : Game
 
             if (DebugMode)
             {
-                foreach (var a in Asteroid.List)
+                Console.WriteLine(Asteroids.Count);
+                foreach (var a in Asteroids.All)
                 {
                     Vector2 origin = (Vector2)a.Hitbox.Center;
                     spriteBatch.DrawLine(origin, origin + a.Dir * a.Radius, Color.Red);
@@ -171,8 +166,8 @@ class MainGame : Game
     }
     
     private void CreateUi()
-    {        
-        
+    {
+           
     }
 
     public MainGame() : base()
