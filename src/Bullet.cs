@@ -29,7 +29,7 @@ class Bullet : Entity
 
             if (dist < asteroid.Radius)
             {
-                asteroid.Destroy();
+                asteroid.Hit();
                 this.Destroy();
                 return;
             }
@@ -51,7 +51,7 @@ class Bullet : Entity
 
     protected override void Draw(SpriteBatch spriteBatch)
     {
-        spriteBatch.FillRectangle(hitbox, Color.White);
+        spriteBatch.DrawPoint(hitbox.Position, Color.White);
     }
     
     public Bullet(Vector2 pos, Angle angle) : base(new RectangleF(pos, size), null)

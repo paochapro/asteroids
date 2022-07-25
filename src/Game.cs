@@ -150,7 +150,6 @@ class MainGame : Game
 
             if (DebugMode)
             {
-                Console.WriteLine(Asteroids.Count);
                 foreach (var a in Asteroids.All)
                 {
                     Vector2 origin = (Vector2)a.Hitbox.Center;
