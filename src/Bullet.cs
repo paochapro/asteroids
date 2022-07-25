@@ -7,29 +7,60 @@ namespace Asteroids;
 
 class Bullets : Group<Bullet>
 {
-    public static void Add(Point2 pos, Angle direction) => Add(new Bullet(pos, direction));
+    public static void Add(Point2 pos, Vector2 direction, bool playerBullet) => Add(new Bullet(pos, direction, playerBullet));
 }
 
-class Bullet : Entity
+class Bullet : Entity, IRadiusCollider
 {
-    private static readonly Point size = new(2, 2);
-    private const float speed = 500f;
+    public Point2 CollisionOrigin { get; private set; }
+    public float CollisionRadius { get; init; } = collisionRadius;
+    private const float collisionRadius = 2f;
+    
+    private static readonly int size = 2;
+    private const float speed = 800f;
     private const float lifeTime = 1f;
     private const float boundsImmersion = 1f;
+    private static readonly Color playerColor = Color.White;
+    private static readonly Color ufoColor = Color.Red;
     
-    private Angle angle;
     private float dt;
+    private bool playerBullet;
+    private Vector2 moveDirection;
+    private Color color;
+    private Action CheckHitFunction;
 
-    private void CheckAsteroidsHit()
+    private void UfoBulletFunction()
+    {
+        IRadiusCollider playerCollider = (IRadiusCollider)MainGame.Player;
+        
+        if (playerCollider.CollidesWith(this))
+        {
+            MainGame.GameOver();
+        }
+    }
+    
+    private void PlayerBulletFunction()
     {
         for (int i = 0; i < Asteroids.Count; ++i)
         {
             Asteroid asteroid = Asteroids.Get(i);
-            float dist = Vector2.Distance(hitbox.Center, asteroid.Hitbox.Center);
+            IRadiusCollider asteroidCollider = (IRadiusCollider)asteroid;
 
-            if (dist < asteroid.Radius)
+            if (asteroidCollider.CollidesWith(this))
             {
                 asteroid.Hit();
+                this.Destroy();
+                return;
+            }
+        }
+        for (int i = 0; i < Ufos.Count; ++i)
+        {
+            Ufo ufo = Ufos.Get(i);
+            IRadiusCollider ufoCollider = (IRadiusCollider)ufo;
+
+            if (ufoCollider.CollidesWith(this))
+            {
+                ufo.Destroy();
                 this.Destroy();
                 return;
             }
@@ -38,7 +69,8 @@ class Bullet : Entity
     
     private void Move()
     {
-        hitbox.Offset(angle.ToUnitVector() * speed * dt);
+        hitbox.Offset(moveDirection * speed * dt);
+        CollisionOrigin = hitbox.Center;
     }
 
     protected override void Update(GameTime gameTime)
@@ -46,17 +78,26 @@ class Bullet : Entity
         dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         Move();
         InBounds(boundsImmersion);
-        CheckAsteroidsHit();
+        CheckHitFunction.Invoke();
     }
 
     protected override void Draw(SpriteBatch spriteBatch)
     {
-        spriteBatch.DrawPoint(hitbox.Position, Color.White);
+        spriteBatch.DrawPoint(hitbox.Position, color, size);
     }
     
-    public Bullet(Vector2 pos, Angle angle) : base(new RectangleF(pos, size), null)
+    public Bullet(Vector2 pos, Vector2 moveDirection, bool playerBullet) : base(new RectangleF(pos, new Point2(size,size)), null)
     {
-        this.angle = angle;
+        if (playerBullet) {
+            color = playerColor;
+            CheckHitFunction = PlayerBulletFunction;
+        }
+        else {
+            color = ufoColor;
+            CheckHitFunction = UfoBulletFunction;
+        }
+        
+        this.moveDirection = moveDirection.NormalizedCopy();
         Event.Add(Destroy, lifeTime);
     }
 

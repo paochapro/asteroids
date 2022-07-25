@@ -6,15 +6,20 @@ using MonoGame.Extended;
 namespace Asteroids;
 using static Utils;
 
-internal class Player : Entity
+internal class Player : Entity, IRadiusCollider
 {
-    private static readonly Texture2D playerTexture = Assets.LoadTexture("player");
-    public static readonly Point size = new(64,64);
+    public float CollisionRadius { get; init; } = collisionRadius;
+    public Point2 CollisionOrigin { get; private set; }
+
+    private static readonly Texture2D playerTexture = Assets.LoadTexture("player_v2");
+    public static readonly Point2 size = new(32,32);
+
+    public static readonly Point2 centerPosition = center(MainGame.Screen, size);
     
     private Angle angle;
     private float rotationSpeed = 350f;
     private Vector2 velocity;
-    public const float collisionRadius = 20f;
+    public const float collisionRadius = 10;
     
     private const float acc = 1000f;
     private const float friction = 0.97f;
@@ -23,11 +28,6 @@ internal class Player : Entity
     private const float boundsImmersion = 0.5f;
 
     private float dt;
-
-    public Point2 Position  {
-        get => hitbox.Position;
-        set => hitbox.Position = value;
-    }
 
     protected override void Update(GameTime gameTime)
     {
@@ -38,30 +38,14 @@ internal class Player : Entity
         velocity.Y = clamp(velocity.Y, -maxVelocity, maxVelocity);
         
         hitbox.Offset(velocity * dt);
-
-        AsteroidCollision();
+        CollisionOrigin = hitbox.Center;
         
         InBounds(boundsImmersion);
     }
 
-    private void Death()
+    public void Death()
     {
-        Console.WriteLine("Death!");
-        MainGame.Reset();
-    }
-    
-    private void AsteroidCollision()
-    {
-        foreach (Asteroid asteroid in Asteroids.All)
-        {
-            float distToAsteroid = Vector2.Distance(asteroid.Hitbox.Center, hitbox.Center);
-            
-            if (distToAsteroid < collisionRadius + asteroid.Radius)
-            {
-                Death();
-                return;
-            }
-        }
+        hitbox.Position = centerPosition;
     }
 
     private void Controls()
@@ -76,37 +60,37 @@ internal class Player : Entity
             velocity += angle.ToUnitVector() * acc * dt;
         }
         else
-        {  
+        {
             velocity *= friction;
-            
             if (Math.Abs(velocity.X) < minFriction && Math.Abs(velocity.Y) < minFriction)
                 velocity = Vector2.Zero;
         }
         
         if(Input.Pressed(Keys.Space))
         {
-            Bullets.Add(hitbox.Position + new Vector2(hitbox.Width * 0.5f, hitbox.Height * 0.5f), angle);
+            Bullets.Add(hitbox.Center, angle.ToUnitVector(), true);
         }
     }
     
     protected override void Draw(SpriteBatch spriteBatch)
     {
-        Rectangle final = (Rectangle)hitbox;
-        Vector2 half = new(final.Width * 0.5f, final.Height * 0.5f);
-        Vector2 origin = half;
-        final.Location += half.ToPoint();
-
+        RectangleF dest = hitbox with { Position = hitbox.Center };
+        
         if (MainGame.DebugMode)
         {
             spriteBatch.DrawRectangle(hitbox, Color.Orange);
             spriteBatch.DrawPoint(hitbox.Position, Color.White);
-            spriteBatch.DrawPoint(origin + hitbox.Position, Color.Green);
+            spriteBatch.DrawPoint(hitbox.Center, Color.Green);
+            spriteBatch.DrawCircle( hitbox.Center, collisionRadius, 16, Color.Red);
         }
         
-        spriteBatch.Draw(texture, final, null, Color.White, -angle.Radians, origin, SpriteEffects.None, 0);
+        spriteBatch.Draw(texture, (Rectangle)dest, null, Color.White, -angle.Radians, new Vector2(32,32), SpriteEffects.None, 0);
     }
 
-    
-    public Player(Point2 pos) : base(new RectangleF(pos, size), playerTexture)
-    {}
+
+    public Player()
+        : base(new RectangleF(Point2.Zero, size), playerTexture)
+    {
+        Death();
+    }
 }

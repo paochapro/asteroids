@@ -40,10 +40,10 @@ abstract partial class Entity
     private bool updated;
 
     protected RectangleF hitbox;
-    protected Texture2D texture;
+    protected Texture2D? texture;
     
     public RectangleF Hitbox => hitbox;
-    public Texture2D Texture => texture;
+    public Texture2D? Texture => texture;
     
     protected abstract void Update(GameTime gameTime);
 
@@ -52,7 +52,7 @@ abstract partial class Entity
         spriteBatch.Draw(texture, (Rectangle)hitbox, Color.White);
     }
 
-    protected Entity(RectangleF hitbox, Texture2D texture)
+    protected Entity(RectangleF hitbox, Texture2D? texture)
     {
         this.hitbox = hitbox;
         this.texture = texture;

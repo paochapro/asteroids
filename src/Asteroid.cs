@@ -11,30 +11,54 @@ class Asteroids : Group<Asteroid>
     public static void HitAdd(Point2 pos, Angle angle, int size) => Add(new Asteroid(pos, angle, size));
 }
 
-class Asteroid : Entity
+class Asteroid : Entity, IRadiusCollider
 {
-    private const float biggestRectSize = biggestRadius*2;
-    private const float biggestRadius = 32+16;
-    private const float speed = 170f;
+    public Point2 CollisionOrigin { get; private set; }
+    public float CollisionRadius { get; private set; }
+
+    private const float biggestRectSize = biggestRadius * 2;
+    private const float biggestRadius = 16 * biggestSize;
     private const float boundsImmersion = 0.9f;
 
+    private int speed;
+    private readonly Range<int> randomSpeedRange = new(140, 250);
+
     private float dt;
-    public float Radius { get; private set; }
     private Angle angle;
     public Vector2 Dir => angle.ToUnitVector();
 
     private int size = 0;
     private const int biggestSize = 3;
 
-    //Biggest
     public Asteroid()
     {
-        int randomX = Random(0-(int)(hitbox.Size.Width * boundsImmersion), MainGame.Screen.X);
-        int randomY = Random(0-(int)(hitbox.Size.Height * boundsImmersion), MainGame.Screen.Y);
-
-        Angle randomAngle = new Angle(Random(0,360), AngleType.Degree);
+        Point2 RandomPosition()
+        {
+            float immersionWidth = hitbox.Size.Width * boundsImmersion;
+            float immersionHeight = hitbox.Size.Height * boundsImmersion;
         
-        Init(new Point(randomX, randomY), randomAngle, biggestSize);
+            var sides = new {
+                Top = 0 - immersionHeight,
+                Bottom = MainGame.Screen.Y - (hitbox.Size.Height - immersionHeight),
+                Left = 0 - immersionWidth,
+                Right = MainGame.Screen.X - (hitbox.Size.Width - immersionWidth)
+            };
+        
+            float randomX = RandomFloat(sides.Left, sides.Right);
+            float randomY = RandomFloat(sides.Top, sides.Bottom);
+        
+            Point2 pos = new Point2(randomX, randomY);
+
+            if(Chance(50)) 
+                pos.X = Chance(50) ? sides.Left : sides.Right; //Left or right
+            else
+                pos.Y = Chance(50) ? sides.Top : sides.Bottom; //Top or bottom
+
+            return pos;
+        }
+        
+        Angle randomAngle = new Angle(Random(0,360), AngleType.Degree);
+        Init(RandomPosition(), randomAngle, biggestSize);
     }
     
     //Hit asteroid
@@ -42,12 +66,15 @@ class Asteroid : Entity
     
     private void Init(Point2 pos, Angle angle, int size)
     {
+        speed = Random(randomSpeedRange.Min, randomSpeedRange.Max);
+        
         hitbox.Position = pos;
         
         float rectSize = (biggestRectSize / biggestSize) * size;
         hitbox.Size = new Point2(rectSize, rectSize);
-        
-        Radius = (biggestRadius / biggestSize) * size;
+
+        drawSides = (biggestDrawSides / biggestSize) * size;
+        CollisionRadius = (biggestRadius / biggestSize) * size;
         this.angle = angle;
         this.size = size;
     }
@@ -55,6 +82,7 @@ class Asteroid : Entity
     private void Move()
     {
         hitbox.Offset(Dir * speed * dt);
+        CollisionOrigin = hitbox.Center;
     }
     
     protected override void Update(GameTime gameTime)
@@ -62,6 +90,7 @@ class Asteroid : Entity
         dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         Move();
         InBounds(boundsImmersion);
+        AsteroidPlayerCollision();
     }
 
     public void Hit()
@@ -79,16 +108,28 @@ class Asteroid : Entity
         Asteroids.HitAdd(hitbox.Position, angle2, newSize);
     }
     
+    private void AsteroidPlayerCollision()
+    {
+        IRadiusCollider playerCollider = (IRadiusCollider)MainGame.Player;
+
+        if (playerCollider.CollidesWith(this))
+            MainGame.GameOver();
+    }
+    
+    private const int biggestDrawSides = 16;
     private const float drawThickness = 2f;
-    private const int drawSides = 32;
+    private int drawSides = 16;
+    
     protected override void Draw(SpriteBatch spriteBatch)
     {
-        spriteBatch.DrawCircle(hitbox.Center, Radius, drawSides, Color.White, drawThickness);
+        spriteBatch.DrawCircle(hitbox.Center, CollisionRadius, drawSides, Color.White, drawThickness);
 
         if (MainGame.DebugMode)
         {
-            spriteBatch.DrawPoint(hitbox.Center, Color.Blue, 4f);
-            spriteBatch.DrawRectangle(hitbox, Color.Orange, drawThickness);
+            spriteBatch.DrawRectangle(hitbox, Color.Orange, 1f);
+            
+            Vector2 origin = (Vector2)hitbox.Center;
+            spriteBatch.DrawLine(origin, origin + Dir * CollisionRadius, Color.Red);
         }
     }
 

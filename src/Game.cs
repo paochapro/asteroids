@@ -69,7 +69,7 @@ class MainGame : Game
         UI.window = Window;
         CreateUi();
 
-        player = new Player(Point2.Zero);
+        player = new Player();
 
         Reset();
 
@@ -92,11 +92,22 @@ class MainGame : Game
 
     public static void Reset()
     {
-        player.Position = center(screen, Player.size);
-        Asteroids.Clear();
+        player.Death();
         
-        for(int i = 0; i < 8; ++i)
+        Asteroids.Clear();
+        Ufos.Clear();
+        Bullets.Clear();
+
+        for(int i = 0; i < 4; ++i)
             Asteroids.Add();
+
+        Ufos.Add(-Vector2.UnitX);
+    }
+
+    public static void GameOver()
+    {
+        Console.WriteLine("game over");
+        Reset();
     }
 
     //Main
@@ -137,8 +148,6 @@ class MainGame : Game
     {
     }
 
-    Vector2 v1 = new(100,50);
-    Vector2 v2 = new(100,80);
     protected override void Draw(GameTime gameTime)
     {
         graphics.GraphicsDevice.Clear(Color.Black);
@@ -147,17 +156,6 @@ class MainGame : Game
         {
             drawMethods[State].Invoke();
             UI.DrawElements(spriteBatch);
-
-            if (DebugMode)
-            {
-                foreach (var a in Asteroids.All)
-                {
-                    Vector2 origin = (Vector2)a.Hitbox.Center;
-                    spriteBatch.DrawLine(origin, origin + a.Dir * a.Radius, Color.Red);
-                }
-
-                spriteBatch.DrawCircle( player.Hitbox.Center, Player.collisionRadius, 16, Color.Green);
-            }
         }
         spriteBatch.End();
 
@@ -173,6 +171,22 @@ class MainGame : Game
     {
         graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
+    }
+}
+
+interface IRadiusCollider
+{
+    public float CollisionRadius { get; }
+    public Point2 CollisionOrigin { get; }
+
+    public bool CollidesWith(IRadiusCollider collider)
+    {
+        float dist = Vector2.Distance(CollisionOrigin, collider.CollisionOrigin);
+
+        if (dist < collider.CollisionRadius + CollisionRadius)
+            return true;
+
+        return false;
     }
 }
 
