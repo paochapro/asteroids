@@ -34,9 +34,7 @@ class Bullet : Entity, IRadiusCollider
         IRadiusCollider playerCollider = (IRadiusCollider)MainGame.Player;
         
         if (playerCollider.CollidesWith(this))
-        {
             MainGame.GameOver();
-        }
     }
     
     private void PlayerBulletFunction()

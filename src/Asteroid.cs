@@ -34,19 +34,19 @@ class Asteroid : Entity, IRadiusCollider
     {
         Point2 RandomPosition()
         {
-            float immersionWidth = hitbox.Size.Width * boundsImmersion;
-            float immersionHeight = hitbox.Size.Height * boundsImmersion;
+            float immersionWidth = biggestRectSize * boundsImmersion;
+            float immersionHeight = biggestRectSize * boundsImmersion;
         
             var sides = new {
                 Top = 0 - immersionHeight,
-                Bottom = MainGame.Screen.Y - (hitbox.Size.Height - immersionHeight),
+                Bottom = MainGame.Screen.Y - (biggestRectSize - immersionHeight),
                 Left = 0 - immersionWidth,
-                Right = MainGame.Screen.X - (hitbox.Size.Width - immersionWidth)
+                Right = MainGame.Screen.X - (biggestRectSize - immersionWidth)
             };
         
             float randomX = RandomFloat(sides.Left, sides.Right);
             float randomY = RandomFloat(sides.Top, sides.Bottom);
-        
+            
             Point2 pos = new Point2(randomX, randomY);
 
             if(Chance(50)) 
@@ -90,7 +90,7 @@ class Asteroid : Entity, IRadiusCollider
         dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         Move();
         InBounds(boundsImmersion);
-        AsteroidPlayerCollision();
+        AsteroidCollision();
     }
 
     public void Hit()
@@ -99,21 +99,26 @@ class Asteroid : Entity, IRadiusCollider
         
         int newSize = size - 1;
         if (newSize < 1) return;
-
-        Angle rotatedAngle = new Angle(90f, AngleType.Degree);
-        Angle angle1 = angle + rotatedAngle;
-        Angle angle2 = angle - rotatedAngle;
         
-        Asteroids.HitAdd(hitbox.Position, angle1, newSize);
-        Asteroids.HitAdd(hitbox.Position, angle2, newSize);
+        Asteroids.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
+        Asteroids.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
     }
     
-    private void AsteroidPlayerCollision()
+    private void AsteroidCollision()
     {
         IRadiusCollider playerCollider = (IRadiusCollider)MainGame.Player;
 
         if (playerCollider.CollidesWith(this))
             MainGame.GameOver();
+
+        for(int i = 0; i < Ufos.Count; ++i)
+        {
+            Ufo ufo = Ufos.Get(i);
+            IRadiusCollider ufoCollider = (IRadiusCollider)ufo;
+
+            if (ufoCollider.CollidesWith(this))
+                ufo.Destroy();
+        }
     }
     
     private const int biggestDrawSides = 16;
@@ -133,5 +138,11 @@ class Asteroid : Entity, IRadiusCollider
         }
     }
 
-    public override void Destroy() => Asteroids.Remove(this);
+    public override void Destroy()
+    {
+        Asteroids.Remove(this);
+        
+        if (Asteroids.Count == 0)
+            MainGame.NextPhase();
+    }
 }

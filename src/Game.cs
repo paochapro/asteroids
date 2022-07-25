@@ -14,7 +14,7 @@ class MainGame : Game
     private static Point screen = defaultScreenSize;
     public static Point Screen => screen;
     
-    private static readonly Point defaultScreenSize = new(800, 800);
+    private static readonly Point defaultScreenSize = new(1200, 800);
     private const string gameName = "Asteroids";
     private const float defaultVolume = 0.3f;
     private const bool resizable = false;
@@ -92,16 +92,38 @@ class MainGame : Game
 
     public static void Reset()
     {
+        phase = startingPhase;
+        
         player.Death();
         
         Asteroids.Clear();
         Ufos.Clear();
         Bullets.Clear();
 
-        for(int i = 0; i < 4; ++i)
-            Asteroids.Add();
+        NextPhase();
 
-        Ufos.Add(-Vector2.UnitX);
+        //Ufos.Add(-Vector2.UnitX, false);
+    }
+
+    private static int phase;
+    private const int startingAsteroids = 4;
+    private const int startingPhase = 2;
+    private const int maxAsteroids = 10;
+    
+    public static void NextPhase()
+    {
+        phase++;
+
+        int asteroids = startingAsteroids + phase / 3;
+        if (asteroids > maxAsteroids) asteroids = maxAsteroids;
+
+        var addAsteroids = () =>
+        {
+            for (int i = 0; i < asteroids; ++i)
+                Asteroids.Add();
+        };
+
+        Event.Add(addAsteroids, 1f);
     }
 
     public static void GameOver()
@@ -156,6 +178,11 @@ class MainGame : Game
         {
             drawMethods[State].Invoke();
             UI.DrawElements(spriteBatch);
+
+            if (DebugMode)
+            {
+                spriteBatch.DrawRectangle( new RectangleF(Point2.Zero, screen), Color.Green);
+            }
         }
         spriteBatch.End();
 
