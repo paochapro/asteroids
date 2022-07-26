@@ -69,7 +69,21 @@ internal static class Utils
         int seed = (int)DateTime.Now.Ticks;
         return new Random(seed).NextSingle(0.0f, 1.0f);
     }
-
+    public static int RandomRange(Range<int> range)
+    {
+        int seed = (int)DateTime.Now.Ticks;
+        return new Random(seed).Next(range.Min, range.Max);
+    }
+    public static float RandomRange(Range<float> range)
+    {
+        int seed = (int)DateTime.Now.Ticks;
+        return new Random(seed).NextSingle(range.Min, range.Max);
+    }
+    public static double RandomRange(Range<long> range)
+    {
+        int seed = (int)DateTime.Now.Ticks;
+        return new Random(seed).NextInt64(range.Min, range.Min);
+    }
     public static bool Chance(int percent)
     {
         int seed = (int)DateTime.Now.Ticks;

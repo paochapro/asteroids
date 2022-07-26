@@ -19,16 +19,16 @@ internal class Player : Entity, IRadiusCollider
     private Angle angle;
     private float rotationSpeed = 350f;
     private Vector2 velocity;
-    public const float collisionRadius = 10;
     
     private const float acc = 1000f;
     private const float friction = 0.97f;
     private const float maxVelocity = 600f;
     private const float minFriction = 1f;
     private const float boundsImmersion = 0.5f;
+    private const float collisionRadius = 10;
 
     private float dt;
-
+    
     protected override void Update(GameTime gameTime)
     {
         dt = (float)gameTime.ElapsedGameTime.TotalSeconds;

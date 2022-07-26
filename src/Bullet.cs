@@ -39,18 +39,6 @@ class Bullet : Entity, IRadiusCollider
     
     private void PlayerBulletFunction()
     {
-        for (int i = 0; i < Asteroids.Count; ++i)
-        {
-            Asteroid asteroid = Asteroids.Get(i);
-            IRadiusCollider asteroidCollider = (IRadiusCollider)asteroid;
-
-            if (asteroidCollider.CollidesWith(this))
-            {
-                asteroid.Hit();
-                this.Destroy();
-                return;
-            }
-        }
         for (int i = 0; i < Ufos.Count; ++i)
         {
             Ufo ufo = Ufos.Get(i);
@@ -59,6 +47,22 @@ class Bullet : Entity, IRadiusCollider
             if (ufoCollider.CollidesWith(this))
             {
                 ufo.Destroy();
+                this.Destroy();
+                return;
+            }
+        }
+    }
+
+    private void AsteroidCollision()
+    {
+        for (int i = 0; i < Asteroids.Count; ++i)
+        {
+            Asteroid asteroid = Asteroids.Get(i);
+            IRadiusCollider asteroidCollider = (IRadiusCollider)asteroid;
+
+            if (asteroidCollider.CollidesWith(this))
+            {
+                asteroid.Hit();
                 this.Destroy();
                 return;
             }
@@ -77,6 +81,7 @@ class Bullet : Entity, IRadiusCollider
         Move();
         InBounds(boundsImmersion);
         CheckHitFunction.Invoke();
+        AsteroidCollision();
     }
 
     protected override void Draw(SpriteBatch spriteBatch)

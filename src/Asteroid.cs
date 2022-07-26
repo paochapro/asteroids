@@ -21,7 +21,7 @@ class Asteroid : Entity, IRadiusCollider
     private const float boundsImmersion = 0.9f;
 
     private int speed;
-    private readonly Range<int> randomSpeedRange = new(140, 250);
+    private readonly Range<int> randomSpeedRange = new(100, 300);
 
     private float dt;
     private Angle angle;
@@ -95,13 +95,15 @@ class Asteroid : Entity, IRadiusCollider
 
     public void Hit()
     {
-        Destroy();
-        
         int newSize = size - 1;
-        if (newSize < 1) return;
         
-        Asteroids.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
-        Asteroids.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
+        if (newSize > 0)
+        {
+            Asteroids.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
+            Asteroids.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
+        }
+
+        Destroy();
     }
     
     private void AsteroidCollision()
@@ -110,14 +112,17 @@ class Asteroid : Entity, IRadiusCollider
 
         if (playerCollider.CollidesWith(this))
             MainGame.GameOver();
-
+        
         for(int i = 0; i < Ufos.Count; ++i)
         {
             Ufo ufo = Ufos.Get(i);
             IRadiusCollider ufoCollider = (IRadiusCollider)ufo;
 
             if (ufoCollider.CollidesWith(this))
+            {
                 ufo.Destroy();
+                Hit();
+            }
         }
     }
     
@@ -141,8 +146,6 @@ class Asteroid : Entity, IRadiusCollider
     public override void Destroy()
     {
         Asteroids.Remove(this);
-        
-        if (Asteroids.Count == 0)
-            MainGame.NextPhase();
+        MainGame.NextPhase();
     }
 }

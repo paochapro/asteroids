@@ -27,6 +27,7 @@ class MainGame : Game
     private static SpriteBatch spriteBatch;
 
     public static bool DebugMode { get; private set; } = true;
+    private static bool PlayerInvincible { get; set; } = false;
 
     public enum GameState { Menu, Game }
 
@@ -49,8 +50,66 @@ class MainGame : Game
     
 
     //Game
+    //private static readonly Range<float> ufoSpawnDelayRange = new(2f, 12f);
+    private static readonly Range<float> ufoSpawnDelayRange = new(2f, 12f);
+    
     public static Player Player => player;
     private static Player player;
+    
+    private static int phase;
+    private const int startingAsteroids = 4;
+    private const int startingPhase = 0;
+    private const int maxAsteroids = 10;
+    
+
+    public static void NextPhase()
+    {
+        if (Asteroids.Count > 0 || Ufos.Count > 0)
+            return;
+        
+        phase++;
+
+        int asteroids = startingAsteroids + phase / 2;
+        if (asteroids > maxAsteroids) asteroids = maxAsteroids;
+
+        var addAsteroids = () =>
+        {
+            for (int i = 0; i < asteroids; ++i)
+                Asteroids.Add();
+            
+            NextUfoSpawn();
+        };
+
+        Event.Add(addAsteroids, 1f);
+    }
+    
+    public static void NextUfoSpawn()
+    {
+        void UfoSpawn()
+        {
+            Vector2 rightSide = Vector2.UnitX;
+            Vector2 leftSide = -Vector2.UnitX;
+            Ufos.Add(Chance(50) ? rightSide : leftSide, Chance(50));
+        }
+        
+        if (Asteroids.Count != 0 && Ufos.Count == 0)
+        {
+            Event.Add(UfoSpawn, RandomRange(ufoSpawnDelayRange));
+        }
+    }
+    
+    public static void Reset()
+    {
+        phase = startingPhase;
+        
+        player.Death();
+        Asteroids.Clear();
+        Ufos.Clear();
+        Bullets.Clear();
+        Event.ClearEvents();
+
+        NextPhase();
+    }
 
     //Initialization
     private static void ChangeScreenSize(Point size)
@@ -90,44 +149,10 @@ class MainGame : Game
         base.Initialize();
     }
 
-    public static void Reset()
-    {
-        phase = startingPhase;
-        
-        player.Death();
-        
-        Asteroids.Clear();
-        Ufos.Clear();
-        Bullets.Clear();
-
-        NextPhase();
-
-        //Ufos.Add(-Vector2.UnitX, false);
-    }
-
-    private static int phase;
-    private const int startingAsteroids = 4;
-    private const int startingPhase = 2;
-    private const int maxAsteroids = 10;
-    
-    public static void NextPhase()
-    {
-        phase++;
-
-        int asteroids = startingAsteroids + phase / 3;
-        if (asteroids > maxAsteroids) asteroids = maxAsteroids;
-
-        var addAsteroids = () =>
-        {
-            for (int i = 0; i < asteroids; ++i)
-                Asteroids.Add();
-        };
-
-        Event.Add(addAsteroids, 1f);
-    }
-
     public static void GameOver()
     {
+        if (PlayerInvincible) return;
+        
         Console.WriteLine("game over");
         Reset();
     }
@@ -156,9 +181,19 @@ class MainGame : Game
     {
         if (Input.Pressed(Keys.OemTilde)) 
             DebugMode = !DebugMode;
+        
+        if (DebugMode)
+        {
+            if (Input.Pressed(Keys.I))
+            {
+                PlayerInvincible = !PlayerInvincible;
+                Console.WriteLine("Players is " + (PlayerInvincible ? "" : "not ") + "invicible");            
+            }
 
-        float zoom = Input.Mouse.ScrollWheelValue / 2000f + 1f;
-        camera.Zoom = clamp(zoom, camera.MinimumZoom, camera.MaximumZoom);
+            
+            float zoom = Input.Mouse.ScrollWheelValue / 2000f + 1f;
+            camera.Zoom = clamp(zoom, camera.MinimumZoom, camera.MaximumZoom);
+        }
     }
     //Draw
     private static void DrawGame()
