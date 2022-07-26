@@ -9,7 +9,6 @@ abstract partial class Entity
 {
     private static int lastUpdatedEntity;
     private static List<Entity> ents = new();
-    public static List<Entity> All => ents;
 
     public static void UpdateAll(GameTime gameTime)
     {
@@ -77,6 +76,7 @@ abstract partial class Entity
     }
 }
 
+/*
 class Group<T> where T : Entity
 {
     private static List<T> list = new();
@@ -97,4 +97,36 @@ class Group<T> where T : Entity
         list.ForEach(obj => Entity.RemoveEntity(obj));
         list.Clear();
     }
+}
+*/
+
+class Group<T> where T : Entity
+{
+    private List<T> list = new();
+    public IEnumerable<T> All => list;
+
+    public int Count => list.Count;
+    public T this[int i] => list[i];
+
+    public void Add(T obj) => list.Add(obj);
+    
+    public void Iterate(Action<T> func)
+    {
+        for (int i = 0; i < Count; ++i)
+        {
+            T item = this[i];
+            func.Invoke(item);    
+;       }
+    }
+    public void Remove(T obj)
+    {
+        list.Remove(obj);
+        Entity.RemoveEntity(obj);
+    }
+    public void Clear()
+    {
+        list.ForEach(obj => Entity.RemoveEntity(obj));
+        list.Clear();
+    }
+    public IEnumerator<T> GetEnumerator() => list.GetEnumerator();
 }

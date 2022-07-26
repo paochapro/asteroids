@@ -7,12 +7,14 @@ using static Utils;
 
 class Asteroids : Group<Asteroid>
 {
-    public static void Add() => Add(new Asteroid());
-    public static void HitAdd(Point2 pos, Angle angle, int size) => Add(new Asteroid(pos, angle, size));
+    public void Add() => Add(new Asteroid());
+    public void HitAdd(Point2 pos, Angle angle, int size) => Add(new Asteroid(pos, angle, size));
 }
 
 class Asteroid : Entity, IRadiusCollider
 {
+    public static Asteroids Group { get; private set; } = new();
+
     public Point2 CollisionOrigin { get; private set; }
     public float CollisionRadius { get; private set; }
 
@@ -90,7 +92,6 @@ class Asteroid : Entity, IRadiusCollider
         dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         Move();
         InBounds(boundsImmersion);
-        AsteroidCollision();
     }
 
     public void Hit()
@@ -99,33 +100,13 @@ class Asteroid : Entity, IRadiusCollider
         
         if (newSize > 0)
         {
-            Asteroids.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
-            Asteroids.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
+            Group.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
+            Group.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
         }
 
         Destroy();
     }
-    
-    private void AsteroidCollision()
-    {
-        IRadiusCollider playerCollider = (IRadiusCollider)MainGame.Player;
 
-        if (playerCollider.CollidesWith(this))
-            MainGame.GameOver();
-        
-        for(int i = 0; i < Ufos.Count; ++i)
-        {
-            Ufo ufo = Ufos.Get(i);
-            IRadiusCollider ufoCollider = (IRadiusCollider)ufo;
-
-            if (ufoCollider.CollidesWith(this))
-            {
-                ufo.Destroy();
-                Hit();
-            }
-        }
-    }
-    
     private const int biggestDrawSides = 16;
     private const float drawThickness = 2f;
     private int drawSides = 16;
@@ -145,7 +126,7 @@ class Asteroid : Entity, IRadiusCollider
 
     public override void Destroy()
     {
-        Asteroids.Remove(this);
+        Group.Remove(this);
         MainGame.NextPhase();
     }
 }

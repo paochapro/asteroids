@@ -5,13 +5,10 @@ using MonoGame.Extended;
 namespace Asteroids;
 using static Utils;
 
-class Ufos : Group<Ufo>
-{
-    public static void Add(Vector2 side, bool small) => Add(new Ufo(side, small));
-}
-
 class Ufo : Entity, IRadiusCollider
 {
+    public static Group<Ufo> Group { get; set; } = new();
+    
     private static Texture2D bigUfoTexture = Assets.LoadTexture("ufo_big");
     private static Texture2D smallUfoTexture = Assets.LoadTexture("ufo_small");
     
@@ -115,7 +112,6 @@ class Ufo : Entity, IRadiusCollider
         DiagonalMovement();
         Move();
         InBounds(boundsImmersion);
-        UfoPlayerCollision();
         ShootLoop();
     }
 
@@ -135,15 +131,7 @@ class Ufo : Entity, IRadiusCollider
         shootDirection = playerCenter - hitbox.Center;
         shootDirection.Normalize();
 
-        Bullets.Add(hitbox.Center, shootDirection, false);
-    }
-    
-    private void UfoPlayerCollision()
-    {
-        IRadiusCollider playerCollider = (IRadiusCollider)MainGame.Player;
-        
-        if(playerCollider.CollidesWith(this))
-            MainGame.GameOver();
+        Bullet.UfoBullets.Add(new Bullet(hitbox.Center, shootDirection, false));
     }
 
     protected override void Draw(SpriteBatch spriteBatch)
@@ -159,7 +147,7 @@ class Ufo : Entity, IRadiusCollider
 
     public override void Destroy()
     {
-        Ufos.Remove(this);
+        Group.Remove(this);
         MainGame.NextUfoSpawn();
         MainGame.NextPhase();
     }

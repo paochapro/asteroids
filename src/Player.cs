@@ -68,7 +68,7 @@ internal class Player : Entity, IRadiusCollider
         
         if(Input.Pressed(Keys.Space))
         {
-            Bullets.Add(hitbox.Center, angle.ToUnitVector(), true);
+            Bullet.PlayerBullets.Add(new Bullet(hitbox.Center, angle.ToUnitVector(), true));
         }
     }
     

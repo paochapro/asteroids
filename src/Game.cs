@@ -51,7 +51,7 @@ class MainGame : Game
 
     //Game
     //private static readonly Range<float> ufoSpawnDelayRange = new(2f, 12f);
-    private static readonly Range<float> ufoSpawnDelayRange = new(2f, 12f);
+    private static readonly Range<float> ufoSpawnDelayRange = new(1f, 1f);
     
     public static Player Player => player;
     private static Player player;
@@ -64,7 +64,7 @@ class MainGame : Game
 
     public static void NextPhase()
     {
-        if (Asteroids.Count > 0 || Ufos.Count > 0)
+        if (Asteroid.Group.Count > 0 || Ufo.Group.Count > 0)
             return;
         
         phase++;
@@ -75,7 +75,7 @@ class MainGame : Game
         var addAsteroids = () =>
         {
             for (int i = 0; i < asteroids; ++i)
-                Asteroids.Add();
+                Asteroid.Group.Add();
             
             NextUfoSpawn();
         };
@@ -89,10 +89,10 @@ class MainGame : Game
         {
             Vector2 rightSide = Vector2.UnitX;
             Vector2 leftSide = -Vector2.UnitX;
-            Ufos.Add(Chance(50) ? rightSide : leftSide, Chance(50));
+            Ufo.Group.Add(new Ufo(Chance(50) ? rightSide : leftSide, Chance(50)));
         }
         
-        if (Asteroids.Count != 0 && Ufos.Count == 0)
+        if (Asteroid.Group.Count != 0 && Ufo.Group.Count == 0)
         {
             Event.Add(UfoSpawn, RandomRange(ufoSpawnDelayRange));
         }
@@ -103,9 +103,12 @@ class MainGame : Game
         phase = startingPhase;
         
         player.Death();
-        Asteroids.Clear();
-        Ufos.Clear();
-        Bullets.Clear();
+
+        Asteroid.Group.Clear();
+        Ufo.Group.Clear();
+        Bullet.PlayerBullets.Clear();
+        Bullet.UfoBullets.Clear();
+        
         Event.ClearEvents();
 
         NextPhase();
@@ -169,6 +172,7 @@ class MainGame : Game
         if (State == GameState.Game)
         {
             Entity.UpdateAll(gameTime);
+            Collisions.Update();
             Controls();
         }
 
@@ -233,22 +237,6 @@ class MainGame : Game
     {
         graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
-    }
-}
-
-interface IRadiusCollider
-{
-    public float CollisionRadius { get; }
-    public Point2 CollisionOrigin { get; }
-
-    public bool CollidesWith(IRadiusCollider collider)
-    {
-        float dist = Vector2.Distance(CollisionOrigin, collider.CollisionOrigin);
-
-        if (dist < collider.CollisionRadius + CollisionRadius)
-            return true;
-
-        return false;
     }
 }
 
