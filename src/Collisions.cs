@@ -32,13 +32,15 @@ static class Collisions
     {
         Asteroid.Group.Iterate(asteroid =>
         {
-            IRadiusCollider playerCollider = (IRadiusCollider)MainGame.Player;
-
-            if (playerCollider.CollidesWith(asteroid))
+            MainGame.Players.Iterate(player =>
             {
-                MainGame.GameOver();
-                return;
-            }
+                IRadiusCollider playerCollider = player as IRadiusCollider;
+                if (playerCollider.CollidesWith(asteroid))
+                {
+                    MainGame.Death();
+                    return;
+                }
+            });
 
             Ufo.Group.Iterate(ufo =>
             {
@@ -57,13 +59,15 @@ static class Collisions
     {
         Ufo.Group.Iterate(ufo =>
         {
-            IRadiusCollider playerCollider = (IRadiusCollider)MainGame.Player;
-
-            if (playerCollider.CollidesWith(ufo))
+            MainGame.Players.Iterate(player =>
             {
-                MainGame.GameOver();
-                return;
-            }
+                IRadiusCollider playerCollider = player as IRadiusCollider;
+                if (playerCollider.CollidesWith(ufo))
+                {
+                    MainGame.Death();
+                    return;
+                }
+            });
         });
     }
     
@@ -71,13 +75,15 @@ static class Collisions
     {
         void UfoBullet(Bullet bullet)
         {
-            IRadiusCollider playerCollider = (IRadiusCollider)MainGame.Player;
-
-            if (playerCollider.CollidesWith(bullet))
+            MainGame.Players.Iterate(player =>
             {
-                MainGame.GameOver();
-                return;
-            }
+                IRadiusCollider playerCollider = player as IRadiusCollider;
+                if (playerCollider.CollidesWith(bullet))
+                {
+                    MainGame.Death();
+                    return;
+                }
+            });
         }
         void PlayerBullet(Bullet bullet)
         {

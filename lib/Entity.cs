@@ -2,7 +2,6 @@
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Asteroids;
 
@@ -10,8 +9,6 @@ namespace Asteroids;
 abstract partial class Entity
 {
     private static List<Entity> ents = new();
-    public static int Count => ents.Count;
-
     private static int updatePosition = 0;
 
     public static void UpdateAll(GameTime gameTime)
@@ -74,7 +71,6 @@ abstract partial class Entity
 {
     private bool destroyed = false;
     private int index;
-    public int Index => index;
     
     public Dictionary<GroupBase, int> group_index { get; private set; } = new();
 
@@ -111,7 +107,7 @@ abstract partial class Entity
         RemoveEntity(this);
     }
     
-    public void InBounds(float immersion)
+    protected void InBounds(float immersion)
     {
         float iw = hitbox.Size.Width * immersion;
         float ih = hitbox.Size.Height * immersion;
@@ -130,17 +126,16 @@ abstract class GroupBase
     private static List<GroupBase> groups = new();
     public static IEnumerable<GroupBase> AllGroups => groups; 
 
-    private static int lastGroupIndex { get; set; }
     protected int groupIndex { get; private set; }
     
     public GroupBase()
     {
-        groupIndex = lastGroupIndex++;
+        groupIndex = groups.Count;
         groups.Add(this);    
     }
 
     public abstract void Remove(Entity item);
-    public abstract void Clear();
+    public abstract void Clear(bool destroy = true);
 }
 
 class Group<T> : GroupBase where T : Entity
@@ -163,7 +158,7 @@ class Group<T> : GroupBase where T : Entity
             func.Invoke(item);
         }
     }
-    public void Add(T item)
+    public void Add(T item, bool addToEntities = true)
     {
         int index = Count;
         
@@ -171,7 +166,7 @@ class Group<T> : GroupBase where T : Entity
         list.Add(item);                    //Adding to the list
         
         //Adding to the entities
-        Entity.AddEntity(item);                  
+        if(addToEntities) Entity.AddEntity(item);
     }
     public override void Remove(Entity item)
     {
@@ -206,9 +201,13 @@ class Group<T> : GroupBase where T : Entity
         for (int i = index; i < Count; ++i)
             --(list[i].group_index[this]);
     }
-    public override void Clear()
+    public override void Clear(bool destroy = true)
     {
-        list.ForEach(ent => ent.group_index.Remove(this)); //Removing group from all members
+        if (destroy)
+            list.ForEach(ent => Entity.RemoveEntity(ent)); //Destroying all members
+        else 
+            list.ForEach(ent => ent.group_index.Remove(this)); //Removing group from all members
+        
         list.Clear(); //Clear the list
     }
     

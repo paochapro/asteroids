@@ -5,7 +5,7 @@ using MonoGame.Extended;
 namespace Asteroids;
 using static Utils;
 
-class Asteroids : Group<Asteroid>
+class AsteroidAll : Group<Asteroid>
 {
     public void Add() => Add(new Asteroid());
     public void HitAdd(Point2 pos, Angle angle, int size) => Add(new Asteroid(pos, angle, size));
@@ -13,7 +13,7 @@ class Asteroids : Group<Asteroid>
 
 class Asteroid : Entity, IRadiusCollider
 {
-    public static Asteroids Group { get; private set; } = new();
+    public static AsteroidAll Group { get; private set; } = new();
 
     public Point2 CollisionOrigin { get; private set; }
     public float CollisionRadius { get; private set; }
@@ -127,6 +127,6 @@ class Asteroid : Entity, IRadiusCollider
     public override void Destroy()
     {
         base.Destroy();
-        MainGame.NextPhase();
+        MainGame.AsteroidDestroyed();
     }
 }

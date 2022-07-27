@@ -8,10 +8,12 @@ using static Utils;
 
 internal class Player : Entity, IRadiusCollider
 {
+    public static Group<Player> Group { get; private set; } = new();
+    
     public float CollisionRadius { get; init; } = collisionRadius;
     public Point2 CollisionOrigin { get; private set; }
 
-    private static readonly Texture2D playerTexture = Assets.LoadTexture("player_v2");
+    public static Texture2D PlayerTexture;
     public static readonly Point2 size = new(32,32);
     
     private Angle angle;
@@ -82,8 +84,7 @@ internal class Player : Entity, IRadiusCollider
 
 
     public Player(Point2 pos)
-        : base(new RectangleF(pos, size), playerTexture)
+        : base(new RectangleF(pos, size), PlayerTexture)
     {
-        AddEntity(this);
     }
 }

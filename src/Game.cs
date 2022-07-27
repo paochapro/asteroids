@@ -18,14 +18,12 @@ class MainGame : Game
     private const string gameName = "Asteroids";
     private const float defaultVolume = 0.3f;
     private const bool resizable = false;
-
-    private static OrthographicCamera camera;
     
     //General stuff
-    public static GraphicsDeviceManager Graphics => graphics;
     private static GraphicsDeviceManager graphics;
     private static SpriteBatch spriteBatch;
-
+    private static OrthographicCamera camera;
+    
     public static bool DebugMode { get; private set; } = true;
     private static bool PlayerInvincible { get; set; } = false;
 
@@ -48,25 +46,50 @@ class MainGame : Game
         [GameState.Game] = DrawGame,
     };
     
-
     //Game
-    //private static readonly Range<float> ufoSpawnDelayRange = new(2f, 12f);
-    private static readonly Range<float> ufoSpawnDelayRange = new(2f, 12f);
+    private static readonly Range<int> lowChance_ufoSpawnRange = new(2, 8);
+    private static readonly Range<int> highChance_ufoSpawnRange = new(8, 14);
     
-    public static Player Player => player;
-    private static Player player;
+    public static Group<Player> Players => Asteroids.Player.Group;
     
     private static int phase;
     private const int startingAsteroids = 4;
     private const int startingPhase = 0;
     private const int maxAsteroids = 10;
-    
 
-    public static void NextPhase()
+    private const int startLives = 5;
+    
+    private static int lives;
+    private static int score;
+    private static bool trySpawnPlayer;
+    private static Label scoreLabel;
+    private static Label livesLabel;
+
+    private const int ufoScore = 50;
+    private const int asteroidScore = 100;
+
+    private static readonly Point2 spawn = center(defaultScreenSize, Player.size);  
+    private const float spawnSafetyRadius = 200f;
+
+    public static void UfoDestroyed()
     {
-        if (Asteroid.Group.Count > 0 || Ufo.Group.Count > 0)
-            return;
+        NextUfoSpawn();
+        ObjectDestroyed(ufoScore);
+    }
+    
+    public static void AsteroidDestroyed() => ObjectDestroyed(asteroidScore);
+    
+    private static void ObjectDestroyed(int givenScore)
+    {
+        score += givenScore;
+        UpdateScoreLabel();
         
+        if (Asteroid.Group.Count == 0 && Ufo.Group.Count == 0) 
+            NextPhase();
+    }
+    
+    private static void NextPhase()
+    {
         phase++;
 
         int asteroids = startingAsteroids + phase / 2;
@@ -87,27 +110,31 @@ class MainGame : Game
     {
         void UfoSpawn()
         {
+            if (Asteroid.Group.Count == 0 || Ufo.Group.Count != 0) 
+                return;
+            
             Vector2 rightSide = Vector2.UnitX;
             Vector2 leftSide = -Vector2.UnitX;
             Ufo.Group.Add(new Ufo(Chance(50) ? rightSide : leftSide, Chance(50)));
         }
-        
-        if (Asteroid.Group.Count != 0 && Ufo.Group.Count == 0)
-        {
-            Event.Add(UfoSpawn, RandomRange(ufoSpawnDelayRange));
-        }
+
+        Range<int> spawnRange = Chance(75) ? highChance_ufoSpawnRange : lowChance_ufoSpawnRange;
+        Event.Add(UfoSpawn, RandomRange(spawnRange));
     }
     
     public static void Reset()
     {
+        trySpawnPlayer = false;
         phase = startingPhase;
+        lives = startLives;
+        score = 0;
         
         Entity.RemoveAll();
         Event.ClearEvents();
-
-        player = new Player(center(Screen, Player.size));
-
+        SpawnPlayer();
         NextPhase();
+        UpdateScoreLabel();
+        UpdateLivesLabel();
     }
 
     //Initialization
@@ -125,8 +152,13 @@ class MainGame : Game
         Assets.Content = Content;
         UI.Font = Content.Load<SpriteFont>("bahnschrift");
         UI.window = Window;
-        CreateUi();
         
+        //Content
+        Player.PlayerTexture = Assets.LoadTexture("player_v2");
+        Ufo.BigUfoTexture = Assets.LoadTexture("ufo_big");
+        Ufo.SmallUfoTexture = Assets.LoadTexture("ufo_small");
+        
+        CreateUi();
         Reset();
 
         State = GameState.Game;
@@ -145,13 +177,59 @@ class MainGame : Game
         
         base.Initialize();
     }
+    
+    private static bool CanPlayerSpawn()
+    {
+        bool canSpawn = true;
+        
+        Asteroid.Group.Iterate(asteroid =>
+        {
+            IRadiusCollider collider = asteroid as IRadiusCollider;
+            float totalRadius = collider.CollisionRadius + spawnSafetyRadius;
+            
+            if (Vector2.Distance(collider.CollisionOrigin, spawn) < totalRadius)
+                canSpawn = false;
+        });
 
-    public static void GameOver()
+        return canSpawn;
+    }
+
+    private static void SpawnPlayer()
+    {
+        Player.Group.Clear();
+        Player.Group.Add(new Player(spawn));
+    }
+
+    private static void GameOver()
+    {
+        Console.WriteLine("game over!");
+        Reset();
+    }
+
+    private const float gameOverDelay = 2f;
+    private const float respawnDelay = 2f;
+    public static void Death()
     {
         if (PlayerInvincible) return;
         
-        Console.WriteLine("game over");
-        Reset();
+        Console.WriteLine("death!");
+        Player.Group.Clear();
+        
+        --lives;
+        UpdateLivesLabel();
+
+        if (lives < 1)
+        {
+            Event.Add(GameOver, gameOverDelay);
+            return;
+        }
+        
+        Event.Add(() => trySpawnPlayer = true, respawnDelay);
+        
+        Event.Add(() => {
+            Ufo.Group.Clear();
+            NextUfoSpawn();
+        }, respawnDelay/2);
     }
 
     //Main
@@ -168,6 +246,12 @@ class MainGame : Game
             Entity.UpdateAll(gameTime);
             Collisions.Update();
             Controls();
+
+            if (trySpawnPlayer && CanPlayerSpawn())
+            {
+                SpawnPlayer();
+                trySpawnPlayer = false;
+            }
         }
 
         Input.CycleEnd();
@@ -185,10 +269,9 @@ class MainGame : Game
             if (Input.Pressed(Keys.I))
             {
                 PlayerInvincible = !PlayerInvincible;
-                Console.WriteLine("Players is " + (PlayerInvincible ? "" : "not ") + "invicible");            
+                Console.WriteLine("Players is " + (PlayerInvincible ? "" : "not ") + "invincible");            
             }
 
-            
             float zoom = Input.Mouse.ScrollWheelValue / 2000f + 1f;
             camera.Zoom = clamp(zoom, camera.MinimumZoom, camera.MaximumZoom);
         }
@@ -222,9 +305,31 @@ class MainGame : Game
         base.Draw(gameTime);
     }
     
-    private void CreateUi()
+    const int uiBottomOffset = 10;
+
+    
+    public static void UpdateScoreLabel()
     {
-           
+        string text = score.ToString();
+        Vector2 measure = UI.Font.MeasureString(text);
+        scoreLabel.text = text;
+        scoreLabel.Position = new Point((int)center(Screen.X/2, Screen.X, measure.X), (int)(Screen.Y - measure.Y - uiBottomOffset));
+    }
+    
+    public static void UpdateLivesLabel()
+    {
+        string text = "Lives: " + lives.ToString();
+        Vector2 measure = UI.Font.MeasureString(text);
+        livesLabel.text = text;
+        livesLabel.Position = new Point((int)center(0, Screen.X/2, measure.X), (int)(Screen.Y - measure.Y - uiBottomOffset));
+    }
+    
+    private static void CreateUi()
+    {
+        scoreLabel = new Label(Point.Zero, "0", Color.White, 1);
+        livesLabel = new Label(Point.Zero, "Lives: -", Color.White, 1);
+        UI.Add(scoreLabel);
+        UI.Add(livesLabel);
     }
 
     public MainGame() : base()

@@ -36,11 +36,6 @@ internal abstract class UI
 
     public Point Position { get => rect.Location; set => rect.Location = value; }
 
-    static UI()
-    {
-        Font = Assets.Load<SpriteFont>("bahnschrift")!;
-    }
-
     public string text;
 
     bool locked = false;

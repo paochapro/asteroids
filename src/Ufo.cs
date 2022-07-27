@@ -8,9 +8,9 @@ using static Utils;
 class Ufo : Entity, IRadiusCollider
 {
     public static Group<Ufo> Group { get; private set; } = new();
-    
-    private static Texture2D bigUfoTexture = Assets.LoadTexture("ufo_big");
-    private static Texture2D smallUfoTexture = Assets.LoadTexture("ufo_small");
+
+    public static Texture2D BigUfoTexture;
+    public static Texture2D SmallUfoTexture;
     
     private const float bigSize = 64;
     private const float boundsImmersion = 0.5f;
@@ -37,7 +37,7 @@ class Ufo : Entity, IRadiusCollider
     private float diagonalChangeTimer;
     
     public Ufo(Vector2 side, bool small)
-        : base(new RectangleF(Point2.Zero, Point2.Zero), small ? smallUfoTexture : bigUfoTexture)
+        : base(new RectangleF(Point2.Zero, Point2.Zero), small ? SmallUfoTexture : BigUfoTexture)
     {
         //size
         if (small) {
@@ -127,7 +127,11 @@ class Ufo : Entity, IRadiusCollider
     
     private void Shoot()
     {
-        Point2 playerCenter = MainGame.Player.Hitbox.Center;
+        if (MainGame.Players.Count == 0)
+            return;
+        
+        Point2 playerCenter = MainGame.Players.All.Single().Hitbox.Center;
+        
         shootDirection = playerCenter - hitbox.Center;
         shootDirection.Normalize();
 
@@ -148,8 +152,7 @@ class Ufo : Entity, IRadiusCollider
     public override void Destroy()
     {
         base.Destroy();
-        MainGame.NextUfoSpawn();
-        MainGame.NextPhase();
+        MainGame.UfoDestroyed();
     }
 }
 

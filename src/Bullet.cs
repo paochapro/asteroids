@@ -17,7 +17,7 @@ class Bullet : Entity, IRadiusCollider
     
     private static readonly int size = 2;
     private const float speed = 800f;
-    private const float lifeTime = 1f;
+    private const float lifetime = 1f;
     private const float boundsImmersion = 1f;
     private static readonly Color playerColor = Color.White;
     private static readonly Color ufoColor = Color.Red;
@@ -25,6 +25,7 @@ class Bullet : Entity, IRadiusCollider
     private float dt;
     private Vector2 moveDirection;
     private Color color;
+    private float lifetimeTimer = 0f;
     
     private void Move()
     {
@@ -37,6 +38,11 @@ class Bullet : Entity, IRadiusCollider
         dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         Move();
         InBounds(boundsImmersion);
+
+        lifetimeTimer += dt;
+        
+        if (lifetimeTimer > lifetime)
+            Destroy();
     }
 
     protected override void Draw(SpriteBatch spriteBatch)
@@ -50,6 +56,5 @@ class Bullet : Entity, IRadiusCollider
         bulletsGroup = playerBullet ? PlayerBullets : UfoBullets;
         
         this.moveDirection = moveDirection.NormalizedCopy();
-        Event.Add(Destroy, lifeTime);
     }
 }
