@@ -126,7 +126,7 @@ class Asteroid : Entity, IRadiusCollider
 
     public override void Destroy()
     {
-        Group.Remove(this);
+        base.Destroy();
         MainGame.NextPhase();
     }
 }

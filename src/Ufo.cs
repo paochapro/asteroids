@@ -7,7 +7,7 @@ using static Utils;
 
 class Ufo : Entity, IRadiusCollider
 {
-    public static Group<Ufo> Group { get; set; } = new();
+    public static Group<Ufo> Group { get; private set; } = new();
     
     private static Texture2D bigUfoTexture = Assets.LoadTexture("ufo_big");
     private static Texture2D smallUfoTexture = Assets.LoadTexture("ufo_small");
@@ -147,7 +147,7 @@ class Ufo : Entity, IRadiusCollider
 
     public override void Destroy()
     {
-        Group.Remove(this);
+        base.Destroy();
         MainGame.NextUfoSpawn();
         MainGame.NextPhase();
     }

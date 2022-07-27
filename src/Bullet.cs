@@ -52,6 +52,4 @@ class Bullet : Entity, IRadiusCollider
         this.moveDirection = moveDirection.NormalizedCopy();
         Event.Add(Destroy, lifeTime);
     }
-
-    public override void Destroy() => bulletsGroup.Remove(this);
 }

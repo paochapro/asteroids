@@ -13,8 +13,6 @@ internal class Player : Entity, IRadiusCollider
 
     private static readonly Texture2D playerTexture = Assets.LoadTexture("player_v2");
     public static readonly Point2 size = new(32,32);
-
-    public static readonly Point2 centerPosition = center(MainGame.Screen, size);
     
     private Angle angle;
     private float rotationSpeed = 350f;
@@ -41,11 +39,6 @@ internal class Player : Entity, IRadiusCollider
         CollisionOrigin = hitbox.Center;
         
         InBounds(boundsImmersion);
-    }
-
-    public void Death()
-    {
-        hitbox.Position = centerPosition;
     }
 
     private void Controls()
@@ -88,9 +81,9 @@ internal class Player : Entity, IRadiusCollider
     }
 
 
-    public Player()
-        : base(new RectangleF(Point2.Zero, size), playerTexture)
+    public Player(Point2 pos)
+        : base(new RectangleF(pos, size), playerTexture)
     {
-        Death();
+        AddEntity(this);
     }
 }

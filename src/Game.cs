@@ -51,7 +51,7 @@ class MainGame : Game
 
     //Game
     //private static readonly Range<float> ufoSpawnDelayRange = new(2f, 12f);
-    private static readonly Range<float> ufoSpawnDelayRange = new(1f, 1f);
+    private static readonly Range<float> ufoSpawnDelayRange = new(2f, 12f);
     
     public static Player Player => player;
     private static Player player;
@@ -76,7 +76,7 @@ class MainGame : Game
         {
             for (int i = 0; i < asteroids; ++i)
                 Asteroid.Group.Add();
-            
+
             NextUfoSpawn();
         };
 
@@ -102,14 +102,10 @@ class MainGame : Game
     {
         phase = startingPhase;
         
-        player.Death();
-
-        Asteroid.Group.Clear();
-        Ufo.Group.Clear();
-        Bullet.PlayerBullets.Clear();
-        Bullet.UfoBullets.Clear();
-        
+        Entity.RemoveAll();
         Event.ClearEvents();
+
+        player = new Player(center(Screen, Player.size));
 
         NextPhase();
     }
@@ -130,9 +126,7 @@ class MainGame : Game
         UI.Font = Content.Load<SpriteFont>("bahnschrift");
         UI.window = Window;
         CreateUi();
-
-        player = new Player();
-
+        
         Reset();
 
         State = GameState.Game;
