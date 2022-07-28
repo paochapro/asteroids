@@ -130,7 +130,7 @@ class Ufo : Entity, IRadiusCollider
         if (MainGame.Players.Count == 0)
             return;
         
-        Point2 playerCenter = MainGame.Players.All.Single().Hitbox.Center;
+        Point2 playerCenter = (MainGame.Players.All.Single() as IRadiusCollider).CollisionOrigin;
         
         shootDirection = playerCenter - hitbox.Center;
         shootDirection.Normalize();
@@ -140,7 +140,7 @@ class Ufo : Entity, IRadiusCollider
 
     protected override void Draw(SpriteBatch spriteBatch)
     {
-        spriteBatch.DrawRectangle(hitbox, Color.Orange, 2f);
+        spriteBatch.Draw(texture, (Rectangle)hitbox, Color.White);
 
         if (MainGame.DebugMode)
         {
@@ -155,4 +155,3 @@ class Ufo : Entity, IRadiusCollider
         MainGame.UfoDestroyed();
     }
 }
-

@@ -9,17 +9,21 @@ using static Utils;
 internal class Player : Entity, IRadiusCollider
 {
     public static Group<Player> Group { get; private set; } = new();
-    
+    public static readonly Point2 size = new(32,32);
+    public static readonly Point2 thrusterSize = new(16,16);
+    public static Texture2D PlayerTexture;
+    public static Animation ThrusterStart;
+
     public float CollisionRadius { get; init; } = collisionRadius;
     public Point2 CollisionOrigin { get; private set; }
 
-    public static Texture2D PlayerTexture;
-    public static readonly Point2 size = new(32,32);
-    
-    private Angle angle;
     private float rotationSpeed = 350f;
     private Vector2 velocity;
+    private Angle angle;
     
+    private Animation thrusterAnimation;
+    private RectangleF thrusterRect;
+
     private const float acc = 1000f;
     private const float friction = 0.97f;
     private const float maxVelocity = 600f;
@@ -39,6 +43,7 @@ internal class Player : Entity, IRadiusCollider
         
         hitbox.Offset(velocity * dt);
         CollisionOrigin = hitbox.Center;
+        thrusterAnimation.Update(gameTime);
         
         InBounds(boundsImmersion);
     }
@@ -49,6 +54,9 @@ internal class Player : Entity, IRadiusCollider
 
         angle.Degrees -= direction * rotationSpeed * dt;
         angle.Wrap();
+
+        if(Input.Pressed(Keys.W)) thrusterAnimation.PlayForward();
+        if(Input.NotPressed(Keys.W)) thrusterAnimation.PlayBackwards();
 
         if (Input.IsKeyDown(Keys.W))
         {
@@ -69,22 +77,37 @@ internal class Player : Entity, IRadiusCollider
     
     protected override void Draw(SpriteBatch spriteBatch)
     {
+        //Ship
         RectangleF dest = hitbox with { Position = hitbox.Center };
+        Vector2 origin = texture.Bounds.Size.ToVector2() / 2;
+        spriteBatch.Draw(texture, (Rectangle)dest, null, Color.White, -angle.Radians, origin, SpriteEffects.None, 0);
+        
+        //Thruster position
+        float offset = 6f; 
+        Vector2 thrusterDirection = -(angle.ToUnitVector());
+        Vector2 thrusterCenter = (thrusterDirection * (size.X/2 + thrusterSize.X/2 - offset)) + hitbox.Center;
+        thrusterRect.Position = thrusterCenter - (Vector2)(thrusterRect.Size / 2);
+
+        //Thruster texture
+        Texture2D thrusterTexture = thrusterAnimation.CurrentTexture;
+        dest = thrusterRect with { Position = thrusterRect.Center };
+        origin = thrusterTexture.Bounds.Size.ToVector2() / 2;
+        spriteBatch.Draw(thrusterTexture, (Rectangle)dest, null, Color.White, -angle.Radians, origin, SpriteEffects.None, 0);
         
         if (MainGame.DebugMode)
         {
             spriteBatch.DrawRectangle(hitbox, Color.Orange);
             spriteBatch.DrawPoint(hitbox.Position, Color.White);
-            spriteBatch.DrawPoint(hitbox.Center, Color.Green);
-            spriteBatch.DrawCircle( hitbox.Center, collisionRadius, 16, Color.Red);
+            spriteBatch.DrawCircle(hitbox.Center, collisionRadius, 16, Color.Red);
+            spriteBatch.DrawRectangle(thrusterRect, Color.Aqua);
         }
-        
-        spriteBatch.Draw(texture, (Rectangle)dest, null, Color.White, -angle.Radians, new Vector2(32,32), SpriteEffects.None, 0);
     }
 
 
     public Player(Point2 pos)
         : base(new RectangleF(pos, size), PlayerTexture)
     {
+        thrusterAnimation = ThrusterStart;
+        thrusterRect = new(Point2.Zero, thrusterSize);
     }
 }

@@ -46,45 +46,62 @@ class MainGame : Game
         [GameState.Game] = DrawGame,
     };
     
-    //Game
-    private static readonly Range<int> lowChance_ufoSpawnRange = new(2, 8);
-    private static readonly Range<int> highChance_ufoSpawnRange = new(8, 14);
+    static readonly Dictionary<GameState, Action<GameTime>> updateMethods = new()
+    {
+        [GameState.Menu] = UpdateMenu,
+        [GameState.Game] = UpdateGame,
+    };
     
+    //UI
+    private const string livesText = "{LIVES_ICON}x";
+    private const int uiBottomOffset = 10;
+    private static readonly Point buttonSize = new(200,65);
+
+    //Game
     public static Group<Player> Players => Asteroids.Player.Group;
     
-    private static int phase;
     private const int startingAsteroids = 4;
-    private const int startingPhase = 0;
     private const int maxAsteroids = 10;
-
     private const int startLives = 5;
+    private const int ufoScore = 50;
+    private const float spawnSafetyRadius = 150f;
+    private const float gameOverDelay = 2f;
+    private const float respawnDelay = 2f;
     
+    private static readonly int[] asteroidSizeScores = { 100, 50, 20 };
+    private static readonly Range<int> lowChance_ufoSpawnRange = new(2, 8);
+    private static readonly Range<int> highChance_ufoSpawnRange = new(8, 14);
+    private static readonly Point2 spawn = center(defaultScreenSize, Player.size);
+    private static readonly Point2 screenCenter = ((Point2)defaultScreenSize).Center(Point2.Zero);
+
+    private static int phase;
     private static int lives;
     private static int score;
     private static bool trySpawnPlayer;
     private static Label scoreLabel;
     private static Label livesLabel;
-
-    private const int ufoScore = 50;
-    private const int asteroidScore = 100;
-
-    private static readonly Point2 spawn = center(defaultScreenSize, Player.size);  
-    private const float spawnSafetyRadius = 200f;
-
+    
     public static void UfoDestroyed()
     {
         NextUfoSpawn();
         ObjectDestroyed(ufoScore);
     }
-    
-    public static void AsteroidDestroyed() => ObjectDestroyed(asteroidScore);
-    
+
+    public static void AsteroidDestroyed(int size)
+    {
+        int index = size - 1;
+        if (index > asteroidSizeScores.Length || index < 0)
+            throw new Exception($"Unhandled asteroid size-{size}, index-{index}, Game/AsteroidDestroyed"); 
+        
+        ObjectDestroyed(asteroidSizeScores[index]);
+    }
+
     private static void ObjectDestroyed(int givenScore)
     {
         score += givenScore;
         UpdateScoreLabel();
         
-        if (Asteroid.Group.Count == 0 && Ufo.Group.Count == 0) 
+        if (Asteroid.Group.Count == 0 && Ufo.Group.Count == 0)
             NextPhase();
     }
     
@@ -92,7 +109,7 @@ class MainGame : Game
     {
         phase++;
 
-        int asteroids = startingAsteroids + phase / 2;
+        int asteroids = startingAsteroids + phase;
         if (asteroids > maxAsteroids) asteroids = maxAsteroids;
 
         var addAsteroids = () =>
@@ -122,62 +139,6 @@ class MainGame : Game
         Event.Add(UfoSpawn, RandomRange(spawnRange));
     }
     
-    public static void Reset()
-    {
-        trySpawnPlayer = false;
-        phase = startingPhase;
-        lives = startLives;
-        score = 0;
-        
-        Entity.RemoveAll();
-        Event.ClearEvents();
-        SpawnPlayer();
-        NextPhase();
-        UpdateScoreLabel();
-        UpdateLivesLabel();
-    }
-
-    //Initialization
-    private static void ChangeScreenSize(Point size)
-    {
-        screen = size;
-        graphics.PreferredBackBufferWidth = size.X;
-        graphics.PreferredBackBufferHeight = size.Y;
-        graphics.ApplyChanges();
-    }
-
-    protected override void LoadContent()
-    {
-        spriteBatch = new SpriteBatch(GraphicsDevice);
-        Assets.Content = Content;
-        UI.Font = Content.Load<SpriteFont>("bahnschrift");
-        UI.window = Window;
-        
-        //Content
-        Player.PlayerTexture = Assets.LoadTexture("player_v2");
-        Ufo.BigUfoTexture = Assets.LoadTexture("ufo_big");
-        Ufo.SmallUfoTexture = Assets.LoadTexture("ufo_small");
-        
-        CreateUi();
-        Reset();
-
-        State = GameState.Game;
-    }
-
-    protected override void Initialize()
-    {
-        Window.AllowUserResizing = resizable;
-        Window.Title = gameName;
-        IsMouseVisible = true;
-        camera = new OrthographicCamera(GraphicsDevice);
-        
-        ChangeScreenSize(defaultScreenSize);
-
-        SoundEffect.MasterVolume = defaultVolume;
-        
-        base.Initialize();
-    }
-    
     private static bool CanPlayerSpawn()
     {
         bool canSpawn = true;
@@ -187,7 +148,7 @@ class MainGame : Game
             IRadiusCollider collider = asteroid as IRadiusCollider;
             float totalRadius = collider.CollisionRadius + spawnSafetyRadius;
             
-            if (Vector2.Distance(collider.CollisionOrigin, spawn) < totalRadius)
+            if (Vector2.Distance(collider.CollisionOrigin, screenCenter) < totalRadius)
                 canSpawn = false;
         });
 
@@ -196,18 +157,18 @@ class MainGame : Game
 
     private static void SpawnPlayer()
     {
+        Ufo.Group.Clear();
+        NextUfoSpawn();
+        
         Player.Group.Clear();
         Player.Group.Add(new Player(spawn));
     }
 
     private static void GameOver()
     {
-        Console.WriteLine("game over!");
-        Reset();
+        State = GameState.Menu;
     }
-
-    private const float gameOverDelay = 2f;
-    private const float respawnDelay = 2f;
+    
     public static void Death()
     {
         if (PlayerInvincible) return;
@@ -225,14 +186,97 @@ class MainGame : Game
         }
         
         Event.Add(() => trySpawnPlayer = true, respawnDelay);
-        
-        Event.Add(() => {
-            Ufo.Group.Clear();
-            NextUfoSpawn();
-        }, respawnDelay/2);
+    }
+    
+    //Initialization
+    private static void ChangeScreenSize(Point size)
+    {
+        screen = size;
+        graphics.PreferredBackBufferWidth = size.X;
+        graphics.PreferredBackBufferHeight = size.Y;
+        graphics.ApplyChanges();
     }
 
+    public static void Reset()
+    {
+        trySpawnPlayer = false;
+        lives = startLives;
+        phase = 0;
+        score = 0;
+        
+        Entity.RemoveAll();
+        Event.ClearEvents();
+        SpawnPlayer();
+        NextPhase();
+        UpdateScoreLabel();
+        UpdateLivesLabel();
+    }
+    
+    protected override void LoadContent()
+    {
+        spriteBatch = new SpriteBatch(GraphicsDevice);
+        Assets.Content = Content;
+        UI.Font = Content.Load<SpriteFont>("bahnschrift");
+        UI.window = Window;
+        
+        //UI style
+        UI.BgDefaultColor = Color.Black;
+        UI.BgSelectedColor = Color.Black;
+        UI.MainDefaultColor = Color.White;
+        
+        //Content
+        Player.PlayerTexture = Assets.LoadTexture("player");
+        Ufo.BigUfoTexture = Assets.LoadTexture("ufo_big");
+        Ufo.SmallUfoTexture = Assets.LoadTexture("ufo_small");
+
+        Texture2D[] thrusterSheet = {   Assets.LoadTexture("thruster0"), 
+                                        Assets.LoadTexture("thruster1"), 
+                                        Assets.LoadTexture("thruster2"), 
+                                        Assets.LoadTexture("thruster3") };
+        
+        Player.ThrusterStart = new Animation(thrusterSheet, true);
+        
+        CreateUi();
+        Reset();
+
+        State = GameState.Menu;
+    }
+
+    protected override void Initialize()
+    {
+        //TODO: sounds, particles
+        
+        Window.AllowUserResizing = resizable;
+        Window.Title = gameName;
+        IsMouseVisible = true;
+        camera = new OrthographicCamera(GraphicsDevice);
+        
+        ChangeScreenSize(defaultScreenSize);
+
+        SoundEffect.MasterVolume = defaultVolume;
+        
+        base.Initialize();
+    }
+    
     //Main
+    private static void UpdateGame(GameTime gameTime)
+    {
+        Entity.UpdateAll(gameTime);
+        Collisions.Update();
+        Controls();
+
+        if (trySpawnPlayer && CanPlayerSpawn())
+        {
+            SpawnPlayer();
+            trySpawnPlayer = false;
+        }
+    }
+    
+    private static void UpdateMenu(GameTime gameTime)
+    {
+        
+    }
+
     protected override void Update(GameTime gameTime)
     {
         //Exit
@@ -240,20 +284,7 @@ class MainGame : Game
 
         UI.UpdateElements(Input.Keys, Input.Mouse);
         Event.ExecuteEvents(gameTime);
-
-        if (State == GameState.Game)
-        {
-            Entity.UpdateAll(gameTime);
-            Collisions.Update();
-            Controls();
-
-            if (trySpawnPlayer && CanPlayerSpawn())
-            {
-                SpawnPlayer();
-                trySpawnPlayer = false;
-            }
-        }
-
+        updateMethods[gameState].Invoke(gameTime);
         Input.CycleEnd();
 
         base.Update(gameTime);
@@ -276,10 +307,17 @@ class MainGame : Game
             camera.Zoom = clamp(zoom, camera.MinimumZoom, camera.MaximumZoom);
         }
     }
+    
     //Draw
     private static void DrawGame()
     {
         Entity.DrawAll(spriteBatch);
+        
+        if (DebugMode)
+        {
+            spriteBatch.DrawRectangle( new RectangleF(Point2.Zero, screen), Color.Green);
+            spriteBatch.DrawCircle(screenCenter, spawnSafetyRadius, 32, Color.Aqua);
+        }
     }
 
     private static void DrawMenu()
@@ -294,42 +332,52 @@ class MainGame : Game
         {
             drawMethods[State].Invoke();
             UI.DrawElements(spriteBatch);
-
-            if (DebugMode)
-            {
-                spriteBatch.DrawRectangle( new RectangleF(Point2.Zero, screen), Color.Green);
-            }
         }
         spriteBatch.End();
 
         base.Draw(gameTime);
     }
     
-    const int uiBottomOffset = 10;
-
-    
+    //UI
     public static void UpdateScoreLabel()
     {
         string text = score.ToString();
         Vector2 measure = UI.Font.MeasureString(text);
         scoreLabel.text = text;
-        scoreLabel.Position = new Point((int)center(Screen.X/2, Screen.X, measure.X), (int)(Screen.Y - measure.Y - uiBottomOffset));
+        scoreLabel.Position = new Point((int)center(0, Screen.X/2, measure.X), (int)(Screen.Y - measure.Y - uiBottomOffset));
     }
-    
+
     public static void UpdateLivesLabel()
     {
-        string text = "Lives: " + lives.ToString();
+        string text = livesText + lives.ToString();
         Vector2 measure = UI.Font.MeasureString(text);
         livesLabel.text = text;
-        livesLabel.Position = new Point((int)center(0, Screen.X/2, measure.X), (int)(Screen.Y - measure.Y - uiBottomOffset));
+        livesLabel.Position = new Point((int)center(Screen.X/2, Screen.X, measure.X), (int)(Screen.Y - measure.Y - uiBottomOffset));
     }
     
     private static void CreateUi()
     {
+        //Game
         scoreLabel = new Label(Point.Zero, "0", Color.White, 1);
-        livesLabel = new Label(Point.Zero, "Lives: -", Color.White, 1);
+        livesLabel = new Label(Point.Zero, livesText + "-", Color.White, 1);
         UI.Add(scoreLabel);
         UI.Add(livesLabel);
+        
+        //Menu
+        //Start button
+        Point pos = new(center(0, screen.X, buttonSize.X), screen.Y - percent(screen.Y, 20) - buttonSize.Y);
+        Rectangle buttonRect = new Rectangle(pos, buttonSize);
+        
+        void startGame()  {
+            State = GameState.Game;
+            Reset();
+        }
+        UI.Add(new Button(buttonRect, startGame, "Insert coin", 0));
+        
+        //Title
+        Vector2 measure = UI.Font.MeasureString(gameName);
+        Point titlePos = new Point( (int)center(0, screen.X, measure.X), percent(screen.Y, 20));
+        UI.Add(new Label(titlePos, gameName, Color.White, 0));
     }
 
     public MainGame() : base()

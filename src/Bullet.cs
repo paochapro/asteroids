@@ -19,9 +19,7 @@ class Bullet : Entity, IRadiusCollider
     private const float speed = 800f;
     private const float lifetime = 1f;
     private const float boundsImmersion = 1f;
-    private static readonly Color playerColor = Color.White;
-    private static readonly Color ufoColor = Color.Red;
-    
+
     private float dt;
     private Vector2 moveDirection;
     private Color color;
@@ -47,14 +45,12 @@ class Bullet : Entity, IRadiusCollider
 
     protected override void Draw(SpriteBatch spriteBatch)
     {
-        spriteBatch.DrawPoint(hitbox.Position, color, size);
+        spriteBatch.DrawPoint(hitbox.Position, Color.White, size);
     }
     
     public Bullet(Vector2 pos, Vector2 moveDirection, bool playerBullet) : base(new RectangleF(pos, new Point2(size,size)), null)
     {
-        color = playerBullet ? playerColor : ufoColor;
         bulletsGroup = playerBullet ? PlayerBullets : UfoBullets;
-        
         this.moveDirection = moveDirection.NormalizedCopy();
     }
 }

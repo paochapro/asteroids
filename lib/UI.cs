@@ -23,14 +23,14 @@ internal abstract class UI
     protected Color bgColor = Color.Purple;
 
     //Main colors
-    static protected Color mainDefaultColor = Color.Black;
-    static protected Color mainSelectedColor = Color.Gold;
-    static protected Color mainLockedColor = Color.Gray;
+    public static Color MainDefaultColor { get; set; } = Color.Black;
+    public static Color MainSelectedColor { get; set; } = Color.Gold;
+    public static Color MainLockedColor { get; set; } = Color.Gray;
 
     //Bg colors
-    static protected Color bgDefaultColor = Color.White;
-    static protected Color bgSelectedColor = new Color(Color.Yellow, 50);
-    static protected Color bgLockedColor = Color.DarkGray;
+    public static Color BgDefaultColor { get; set; } = Color.White;
+    public static Color BgSelectedColor { get; set; } = new Color(Color.Yellow, 50);
+    public static Color BgLockedColor { get; set; } = Color.DarkGray;
 
     public static SpriteFont Font { get; set; }
 
@@ -50,8 +50,8 @@ internal abstract class UI
             locked = value;
             if (locked)
             {
-                mainColor = mainLockedColor;
-                bgColor = bgLockedColor;
+                mainColor = MainLockedColor;
+                bgColor = BgLockedColor;
             };
         }
     }
@@ -60,15 +60,15 @@ internal abstract class UI
 
     protected virtual void Update(KeyboardState keys, MouseState mouse)
     {
-        mainColor = mainDefaultColor;
-        bgColor = bgDefaultColor;
+        mainColor = MainDefaultColor;
+        bgColor = BgDefaultColor;
 
         if (rect.Contains(mouse.Position) && !Clicking)
         {
             Mouse.SetCursor(MouseCursor.Hand);
 
-            mainColor = mainSelectedColor;
-            bgColor = bgSelectedColor;
+            mainColor = MainSelectedColor;
+            bgColor = BgSelectedColor;
 
             if (mouse.LeftButton == ButtonState.Pressed)
                 Activate();
