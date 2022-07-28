@@ -1,15 +1,19 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.Timers;
 
 namespace Asteroids;
+using static Utils;
 
 class Bullet : Entity, IRadiusCollider
 {
     public static Group<Bullet> PlayerBullets { get; private set; } = new(); 
     public static Group<Bullet> UfoBullets { get; private set; } = new();
     private Group<Bullet> bulletsGroup;
+    
+    public static SoundEffect ShootSound;
 
     public Point2 CollisionOrigin { get; private set; }
     public float CollisionRadius { get; init; } = collisionRadius;
@@ -52,5 +56,17 @@ class Bullet : Entity, IRadiusCollider
     {
         bulletsGroup = playerBullet ? PlayerBullets : UfoBullets;
         this.moveDirection = moveDirection.NormalizedCopy();
+
+        SoundEffectInstance shot = ShootSound.CreateInstance();
+
+        Range<float> playerPitch = new(-0.2f, 0.2f);
+        Range<float> ufoPitch = new(0.4f, 0.6f);
+        float playerVolume = 0.4f;
+        float ufoVolume = 0.7f;
+
+        shot.Pitch = playerBullet ? RandomRange(playerPitch) : RandomRange(ufoPitch);
+        shot.Volume = playerBullet ? playerVolume : ufoVolume;
+        
+        shot.Play();
     }
 }

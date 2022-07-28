@@ -13,7 +13,7 @@ class Animation
     public bool Playing { get; private set; }
     public int Frame { get; private set; }
     public int Speed { get; set; }
-    
+
     private float currentTime;
     private int direction;
 
@@ -25,6 +25,18 @@ class Animation
         Speed = speed;
         Frame = 0;
     }
+    public Animation(Animation other)
+    {
+        //Copying texture sheet
+        textureSheet = new Texture2D[other.textureSheet.Length];
+        Array.Copy(other.textureSheet, textureSheet, other.textureSheet.Length);
+
+        HoldAnimation = other.HoldAnimation;
+        Speed = other.Speed;
+        Playing = false;
+        Frame = 0;
+    }
+    
     public void PlayForward()
     {
         Playing = true;

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Audio;
 using MonoGame.Extended;
 
 namespace Asteroids;
@@ -94,7 +95,7 @@ class Asteroid : Entity, IRadiusCollider
         InBounds(boundsImmersion);
     }
 
-    public void Hit()
+    public void Hit(bool playerHit)
     {
         int newSize = size - 1;
         
@@ -105,6 +106,7 @@ class Asteroid : Entity, IRadiusCollider
         }
 
         Destroy();
+        MainGame.AsteroidDestroyed(size, playerHit);
     }
 
     private const int biggestDrawSides = 16;
@@ -122,11 +124,5 @@ class Asteroid : Entity, IRadiusCollider
             Vector2 origin = (Vector2)hitbox.Center;
             spriteBatch.DrawLine(origin, origin + Dir * CollisionRadius, Color.Red);
         }
-    }
-
-    public override void Destroy()
-    {
-        base.Destroy();
-        MainGame.AsteroidDestroyed(size);
     }
 }

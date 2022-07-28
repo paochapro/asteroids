@@ -48,8 +48,8 @@ static class Collisions
 
                 if (ufoCollider.CollidesWith(asteroid))
                 {
-                    ufo.Destroy();
-                    asteroid.Hit();
+                    ufo.Hit(false);
+                    asteroid.Hit(false);
                 }
             });
         });
@@ -84,6 +84,8 @@ static class Collisions
                     return;
                 }
             });
+            
+            AsteroidCollision(bullet, false);
         }
         void PlayerBullet(Bullet bullet)
         {
@@ -93,13 +95,15 @@ static class Collisions
 
                 if (ufoCollider.CollidesWith(bullet))
                 {
-                    ufo.Destroy();
+                    ufo.Hit(true);
                     bullet.Destroy();
                     return;
-                }   
+                }
             });
+            
+            AsteroidCollision(bullet, true);
         }
-        void AsteroidCollision(Bullet bullet)
+        void AsteroidCollision(Bullet bullet, bool isPlayerBullet)
         {
             Asteroid.Group.Iterate(asteroid =>
             {
@@ -107,22 +111,14 @@ static class Collisions
 
                 if (asteroidCollider.CollidesWith(bullet))
                 {
-                    asteroid.Hit();
+                    asteroid.Hit(isPlayerBullet);
                     bullet.Destroy();
                     return;
                 }
             });
         }
         
-        Bullet.PlayerBullets.Iterate(bullet =>
-        {
-            AsteroidCollision(bullet);
-            PlayerBullet(bullet);
-        });
-        Bullet.UfoBullets.Iterate(bullet => 
-        {
-            AsteroidCollision(bullet);
-            UfoBullet(bullet);
-        });
+        Bullet.PlayerBullets.Iterate(PlayerBullet);
+        Bullet.UfoBullets.Iterate(UfoBullet);
     }
 }

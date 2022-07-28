@@ -20,6 +20,12 @@
 /processorParam:TextureFormat=Compressed
 /build:bahnschrift.spritefont
 
+#begin crash1.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:crash1.wav
+
 #begin error.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -43,6 +49,18 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:player_v2.png;player.png
+
+#begin shot.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:shot.wav
+
+#begin thrust.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:thrust.wav
 
 #begin thruster.png
 /importer:TextureImporter
@@ -91,18 +109,6 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:thruster2.png
-
-#begin thruster3.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:thruster3.png
 
 #begin thruster3.png
 /importer:TextureImporter

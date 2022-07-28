@@ -149,9 +149,9 @@ class Ufo : Entity, IRadiusCollider
         }
     }
 
-    public override void Destroy()
+    public void Hit(bool playerHit)
     {
-        base.Destroy();
-        MainGame.UfoDestroyed();
+        Destroy();
+        MainGame.UfoDestroyed(playerHit);
     }
 }

@@ -20,11 +20,12 @@ class MainGame : Game
     private const bool resizable = false;
     
     //General stuff
+    public static GraphicsDeviceManager Graphics => graphics;
     private static GraphicsDeviceManager graphics;
     private static SpriteBatch spriteBatch;
     private static OrthographicCamera camera;
     
-    public static bool DebugMode { get; private set; } = true;
+    public static bool DebugMode { get; private set; } = false;
     private static bool PlayerInvincible { get; set; } = false;
 
     public enum GameState { Menu, Game }
@@ -66,7 +67,7 @@ class MainGame : Game
     private const int ufoScore = 50;
     private const float spawnSafetyRadius = 150f;
     private const float gameOverDelay = 2f;
-    private const float respawnDelay = 2f;
+    private const float respawnDelay = 1f;
     
     private static readonly int[] asteroidSizeScores = { 100, 50, 20 };
     private static readonly Range<int> lowChance_ufoSpawnRange = new(2, 8);
@@ -80,20 +81,31 @@ class MainGame : Game
     private static bool trySpawnPlayer;
     private static Label scoreLabel;
     private static Label livesLabel;
+    private static SoundEffect crashSound;
+
+    private static void PlayCrashSound()
+    {
+        SoundEffectInstance crash = crashSound.CreateInstance();
+        crash.Pitch = RandomFloat(-0.2f, 0.2f);
+        crash.Volume = RandomFloat(0.6f, 1f);
+        crash.Play();
+    }
     
-    public static void UfoDestroyed()
+    public static void UfoDestroyed(bool playerHit)
     {
         NextUfoSpawn();
-        ObjectDestroyed(ufoScore);
+        ObjectDestroyed(playerHit ? ufoScore : 0);
+        PlayCrashSound();
     }
 
-    public static void AsteroidDestroyed(int size)
+    public static void AsteroidDestroyed(int size, bool playerHit)
     {
         int index = size - 1;
         if (index > asteroidSizeScores.Length || index < 0)
-            throw new Exception($"Unhandled asteroid size-{size}, index-{index}, Game/AsteroidDestroyed"); 
-        
-        ObjectDestroyed(asteroidSizeScores[index]);
+            throw new Exception($"Unhandled asteroid size-{size}, index-{index}, Game/AsteroidDestroyed");
+
+        ObjectDestroyed(playerHit ? asteroidSizeScores[index] : 0);
+        PlayCrashSound();
     }
 
     private static void ObjectDestroyed(int givenScore)
@@ -174,10 +186,11 @@ class MainGame : Game
         if (PlayerInvincible) return;
         
         Console.WriteLine("death!");
-        Player.Group.Clear();
-        
+        Player.Group.Iterate(p => p.Destroy());
+
         --lives;
         UpdateLivesLabel();
+        PlayCrashSound();
 
         if (lives < 1)
         {
@@ -226,15 +239,18 @@ class MainGame : Game
         
         //Content
         Player.PlayerTexture = Assets.LoadTexture("player");
-        Ufo.BigUfoTexture = Assets.LoadTexture("ufo_big");
-        Ufo.SmallUfoTexture = Assets.LoadTexture("ufo_small");
-
         Texture2D[] thrusterSheet = {   Assets.LoadTexture("thruster0"), 
                                         Assets.LoadTexture("thruster1"), 
                                         Assets.LoadTexture("thruster2"), 
                                         Assets.LoadTexture("thruster3") };
         
-        Player.ThrusterStart = new Animation(thrusterSheet, true);
+        Player.ThrusterAnimation = new Animation(thrusterSheet, true);
+        Player.ThrustSound = Assets.Load<SoundEffect>("thrust");
+        Bullet.ShootSound = Assets.Load<SoundEffect>("shot");
+        crashSound = Assets.Load<SoundEffect>("crash1");
+        
+        Ufo.BigUfoTexture = Assets.LoadTexture("ufo_big");
+        Ufo.SmallUfoTexture = Assets.LoadTexture("ufo_small");
         
         CreateUi();
         Reset();
@@ -244,7 +260,7 @@ class MainGame : Game
 
     protected override void Initialize()
     {
-        //TODO: sounds, particles
+        //TODO: particles
         
         Window.AllowUserResizing = resizable;
         Window.Title = gameName;

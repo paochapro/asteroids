@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Audio;
 using MonoGame.Extended;
 
 namespace Asteroids;
@@ -12,7 +13,8 @@ internal class Player : Entity, IRadiusCollider
     public static readonly Point2 size = new(32,32);
     public static readonly Point2 thrusterSize = new(16,16);
     public static Texture2D PlayerTexture;
-    public static Animation ThrusterStart;
+    public static Animation ThrusterAnimation;
+    public static SoundEffect ThrustSound;
 
     public float CollisionRadius { get; init; } = collisionRadius;
     public Point2 CollisionOrigin { get; private set; }
@@ -48,6 +50,10 @@ internal class Player : Entity, IRadiusCollider
         InBounds(boundsImmersion);
     }
 
+    private SoundEffectInstance thrustSndInstance;
+
+
+    private bool pressedW;
     private void Controls()
     {
         int direction = Convert.ToInt32(Input.IsKeyDown(Keys.D)) - Convert.ToInt32(Input.IsKeyDown(Keys.A));
@@ -55,9 +61,19 @@ internal class Player : Entity, IRadiusCollider
         angle.Degrees -= direction * rotationSpeed * dt;
         angle.Wrap();
 
-        if(Input.Pressed(Keys.W)) thrusterAnimation.PlayForward();
-        if(Input.NotPressed(Keys.W)) thrusterAnimation.PlayBackwards();
-
+        if (Input.IsKeyDown(Keys.W) && !pressedW)
+        {
+            thrusterAnimation.PlayForward();
+            thrustSndInstance.Pitch = RandomFloat(-0.1f, 0.1f);
+            thrustSndInstance.Stop();
+            thrustSndInstance.Play();
+        }
+        if (pressedW && !Input.IsKeyDown(Keys.W))
+        {
+            thrusterAnimation.PlayBackwards();
+            thrustSndInstance.Stop();
+        }
+        
         if (Input.IsKeyDown(Keys.W))
         {
             velocity += angle.ToUnitVector() * acc * dt;
@@ -73,6 +89,8 @@ internal class Player : Entity, IRadiusCollider
         {
             Bullet.PlayerBullets.Add(new Bullet(hitbox.Center, angle.ToUnitVector(), true));
         }
+
+        pressedW = Input.IsKeyDown(Keys.W);
     }
     
     protected override void Draw(SpriteBatch spriteBatch)
@@ -103,11 +121,19 @@ internal class Player : Entity, IRadiusCollider
         }
     }
 
+    public override void Destroy()
+    {
+        thrustSndInstance.Stop();
+        base.Destroy();
+    }
 
     public Player(Point2 pos)
         : base(new RectangleF(pos, size), PlayerTexture)
     {
-        thrusterAnimation = ThrusterStart;
         thrusterRect = new(Point2.Zero, thrusterSize);
+        thrusterAnimation = new Animation(ThrusterAnimation);
+        thrustSndInstance = ThrustSound.CreateInstance();
+        thrustSndInstance.IsLooped = true;
+        thrustSndInstance.Volume = 0.8f;
     }
 }
