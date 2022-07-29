@@ -9,19 +9,38 @@ using static Asteroids.Utils;
 namespace Asteroids;
 
 //Ui
-internal abstract class UI
+abstract class UI
 {
     //Static
-    static List<UI> elements = new();
-    static bool clicking;
+    private static List<UI> elements = new();
+    private static bool clicking;
     public static bool Clicking => clicking;
+    public static int CurrentLayer { get; set; }
     public static GameWindow window;
+    public static SpriteFont Font { get; set; }
+    
+    public static void UpdateElements(KeyboardState keys, MouseState mouse)
+    {
+        Mouse.SetCursor(MouseCursor.Arrow);
 
-    //Element
-    protected Rectangle rect = Rectangle.Empty;
-    protected Color mainColor = Color.Purple;
-    protected Color bgColor = Color.Purple;
+        foreach (UI element in elements)
+            if (element.layer == CurrentLayer && !element.locked)
+                element.Update(keys, mouse);
 
+        clicking = (mouse.LeftButton == ButtonState.Pressed);
+    }
+    public static void DrawElements(SpriteBatch spriteBatch)
+    {
+        foreach (UI element in elements)
+            if (element.layer == CurrentLayer && !element.Hidden)
+                element.Draw(spriteBatch);
+    }
+    public static T Add<T>(T elem) where T : UI
+    {
+        elements.Add(elem);
+        return elem;
+    }
+    
     //Main colors
     public static Color MainDefaultColor { get; set; } = Color.Black;
     public static Color MainSelectedColor { get; set; } = Color.Gold;
@@ -31,17 +50,19 @@ internal abstract class UI
     public static Color BgDefaultColor { get; set; } = Color.White;
     public static Color BgSelectedColor { get; set; } = new Color(Color.Yellow, 50);
     public static Color BgLockedColor { get; set; } = Color.DarkGray;
-
-    public static SpriteFont Font { get; set; }
-
+    
+    //Element
+    public Rectangle rect = Rectangle.Empty;
+    protected Color mainColor = Color.Purple;
+    protected Color bgColor = Color.Purple;
+    
     public Point Position { get => rect.Location; set => rect.Location = value; }
+    public Point Size { get => rect.Size; set => rect.Size = value; }
 
+    protected readonly int layer = 0;
     public string text;
-
-    bool locked = false;
     protected bool allowHold;
-    public bool Hidden { get; set; }
-
+    private bool locked = false;
     public bool Locked
     {
         get => locked;
@@ -55,6 +76,7 @@ internal abstract class UI
             };
         }
     }
+    public bool Hidden { get; set; }
 
     public abstract void Activate();
 
@@ -76,42 +98,17 @@ internal abstract class UI
     }
 
     protected abstract void Draw(SpriteBatch spriteBatch);
-
-    protected readonly int layer = 0;
-    public static int CurrentLayer { get; set; }
-
+    
     protected UI(Rectangle rect, string text, int layer)
     {
         this.rect = rect;
         this.text = text;
         this.layer = layer;
     }
-
-    static public void UpdateElements(KeyboardState keys, MouseState mouse)
-    {
-        Mouse.SetCursor(MouseCursor.Arrow);
-
-        foreach (UI element in elements)
-            if (element.layer == CurrentLayer && !element.locked)
-                element.Update(keys, mouse);
-
-        clicking = (mouse.LeftButton == ButtonState.Pressed);
-    }
-    static public void DrawElements(SpriteBatch spriteBatch)
-    {
-        foreach (UI element in elements)
-            if (element.layer == CurrentLayer && !element.Hidden)
-                element.Draw(spriteBatch);
-    }
-    static public T Add<T>(T elem) where T : UI
-    {
-        elements.Add(elem);
-        return elem;
-    }
 }
 
 //Button
-internal class Button : UI
+class Button : UI
 {
     event Action func;
 
@@ -137,7 +134,7 @@ internal class Button : UI
     }
 }
 
-internal class TextureButton : Button
+class TextureButton : Button
 {
     static int instance = 0;
     Texture2D texture;
@@ -154,7 +151,7 @@ internal class TextureButton : Button
     }
 }
 
-internal class CheckBox : UI
+class CheckBox : UI
 {
     static readonly Point size = new Point(24, 24);
     const int textOffset = 5;
@@ -206,7 +203,7 @@ internal class CheckBox : UI
     }
 }
 
-internal class Slider : UI
+class Slider : UI
 {
     public const int sizeY = 50;
     const int sliderSizeX = 20;
@@ -287,7 +284,7 @@ class Label : UI
 
 class TextBox : UI
 {
-    const string avaliableCharaters = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-=!@#$%^&*()_+[]{};':|\\\",./<>?`~ ";
+    private const string avaliableCharaters = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-=!@#$%^&*()_+[]{};':|\\\",./<>?`~ ";
 
     public string Text => writtenText.ToString();
     StringBuilder writtenText = new();
@@ -361,4 +358,75 @@ class TextBox : UI
 
         spriteBatch.DrawRectangle(rect, focus ? Color.Blue : mainColor, 3);
     }
+}
+
+class Image : UI
+{
+    public Texture2D Texture { get; private set; }
+    public Angle Rotation { get; set; }
+    
+    public Image(Texture2D image, Rectangle box, int layer)
+        : base(box, "", layer)
+    {
+        Texture = image;
+    }
+    
+    public Image(Texture2D image, Point position, int layer)
+        : this(image, new Rectangle(position, image.Bounds.Size), layer)
+    {
+    }
+    
+    protected override void Draw(SpriteBatch spriteBatch)
+    {
+        spriteBatch.Draw(Texture, new Rectangle(rect.Center, rect.Size), null, Color.White, -Rotation.Radians, Texture.Bounds.Size.ToVector2() / 2, SpriteEffects.None, 0);
+    }
+
+    protected override void Update(KeyboardState keys, MouseState mouse) {}
+
+    public override void Activate() {}
+}
+
+//Containers
+class Container : UI
+{
+    private List<UI> elements = new();
+    public int ElementOffset { get; set; }
+
+    public Container(Rectangle box, int elementOffset, int layer)
+        : base(box, "", layer)
+    {
+        ElementOffset = elementOffset;
+    }
+    
+    public void Add(UI element)
+    {
+        elements.Add(element);
+        Rearrange();
+    }
+    public void Remove(UI element)
+    {
+        elements.Remove(element);
+        Rearrange();
+    }
+
+    private void Rearrange()
+    {
+        UI? previousElement = null;
+        
+        foreach (UI element in elements)
+        {
+            element.rect.X = (previousElement?.rect.Right + ElementOffset ?? rect.X);
+            element.rect.Y = rect.Y;
+            previousElement = element;
+        }
+    }
+
+    protected override void Draw(SpriteBatch spriteBatch)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override void Update(KeyboardState keys, MouseState mouse) {}
+
+    public override void Activate() {}
 }

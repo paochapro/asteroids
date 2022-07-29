@@ -9,12 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.0.1641" />
-      <PackageReference Include="MonoGame.Extended" Version="3.8.0" />
-      <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.0.1641" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Content Remove="C:\Users\Рома\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\SharpDX.dll" />
       <Content Remove="C:\Users\Рома\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\SharpDX.xml" />
       <Content Remove="C:\Users\Рома\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\SharpDX.D3DCompiler.dll" />
@@ -27,6 +21,12 @@
       <Content Remove="C:\Users\Рома\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\mgfxc.runtimeconfig.json" />
       <Content Remove="C:\Users\Рома\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\mgfxc.runtimeconfig.dev.json" />
       <Content Remove="C:\Users\Рома\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\CppNet.dll" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.0.1641" />
+      <PackageReference Include="MonoGame.Extended" Version="3.8.0" />
+      <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.0.1641" />
     </ItemGroup>
 
 </Project>

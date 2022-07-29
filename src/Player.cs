@@ -15,6 +15,7 @@ internal class Player : Entity, IRadiusCollider
     public static Texture2D PlayerTexture;
     public static Animation ThrusterAnimation;
     public static SoundEffect ThrustSound;
+    public static SoundEffect ShootSound;
 
     public float CollisionRadius { get; init; } = collisionRadius;
     public Point2 CollisionOrigin { get; private set; }
@@ -25,6 +26,7 @@ internal class Player : Entity, IRadiusCollider
     
     private Animation thrusterAnimation;
     private RectangleF thrusterRect;
+    private SoundEffectInstance thrustSndInstance;
 
     private const float acc = 1000f;
     private const float friction = 0.97f;
@@ -34,7 +36,65 @@ internal class Player : Entity, IRadiusCollider
     private const float collisionRadius = 10;
 
     private float dt;
+    private bool pressedW;
     
+    private void ControlThruster()
+    {
+        if (Input.IsKeyDown(Keys.W) && !pressedW)
+        {
+            thrusterAnimation.PlayForward();
+            thrustSndInstance.Pitch = RandomFloat(-0.1f, 0.1f);
+            thrustSndInstance.Stop();
+            thrustSndInstance.Play();
+        }
+        if (pressedW && !Input.IsKeyDown(Keys.W))
+        {
+            thrusterAnimation.PlayBackwards();
+            thrustSndInstance.Stop();
+        }
+    }
+    
+    private void ControlMovement()
+    {
+        if (Input.IsKeyDown(Keys.W))
+        {
+            velocity += angle.ToUnitVector() * acc * dt;
+        }
+        else
+        {
+            velocity *= friction;
+            if (Math.Abs(velocity.X) < minFriction && Math.Abs(velocity.Y) < minFriction)
+                velocity = Vector2.Zero;
+        }
+    }
+    
+    private void Shoot()
+    {
+        Bullet.PlayerBullets.Add(new Bullet(hitbox.Center, angle.ToUnitVector(), true));
+                    
+        SoundEffectInstance shot = ShootSound.CreateInstance();
+        Range<float> playerPitch = new(-0.2f, 0.2f);
+        float playerVolume = 0.4f;
+        shot.Pitch = RandomRange(playerPitch);
+        shot.Volume = playerVolume;
+        shot.Play();
+    }
+    
+    private void Controls()
+    {
+        int direction = Convert.ToInt32(Input.IsKeyDown(Keys.D)) - Convert.ToInt32(Input.IsKeyDown(Keys.A));
+
+        angle.Degrees -= direction * rotationSpeed * dt;
+        angle.Wrap();
+
+        ControlThruster();
+        ControlMovement();
+
+        if (Input.Pressed(Keys.Space)) Shoot();
+
+        pressedW = Input.IsKeyDown(Keys.W);
+    }
+
     protected override void Update(GameTime gameTime)
     {
         dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -48,49 +108,6 @@ internal class Player : Entity, IRadiusCollider
         thrusterAnimation.Update(gameTime);
         
         InBounds(boundsImmersion);
-    }
-
-    private SoundEffectInstance thrustSndInstance;
-
-
-    private bool pressedW;
-    private void Controls()
-    {
-        int direction = Convert.ToInt32(Input.IsKeyDown(Keys.D)) - Convert.ToInt32(Input.IsKeyDown(Keys.A));
-
-        angle.Degrees -= direction * rotationSpeed * dt;
-        angle.Wrap();
-
-        if (Input.IsKeyDown(Keys.W) && !pressedW)
-        {
-            thrusterAnimation.PlayForward();
-            thrustSndInstance.Pitch = RandomFloat(-0.1f, 0.1f);
-            thrustSndInstance.Stop();
-            thrustSndInstance.Play();
-        }
-        if (pressedW && !Input.IsKeyDown(Keys.W))
-        {
-            thrusterAnimation.PlayBackwards();
-            thrustSndInstance.Stop();
-        }
-        
-        if (Input.IsKeyDown(Keys.W))
-        {
-            velocity += angle.ToUnitVector() * acc * dt;
-        }
-        else
-        {
-            velocity *= friction;
-            if (Math.Abs(velocity.X) < minFriction && Math.Abs(velocity.Y) < minFriction)
-                velocity = Vector2.Zero;
-        }
-        
-        if(Input.Pressed(Keys.Space))
-        {
-            Bullet.PlayerBullets.Add(new Bullet(hitbox.Center, angle.ToUnitVector(), true));
-        }
-
-        pressedW = Input.IsKeyDown(Keys.W);
     }
     
     protected override void Draw(SpriteBatch spriteBatch)
@@ -121,10 +138,15 @@ internal class Player : Entity, IRadiusCollider
         }
     }
 
-    public override void Destroy()
+    public void Hit()
+    {
+        Entity.AddEntity(new ParticleEmitter(hitbox.Center, 10, 50f, 2f));
+        Destroy();
+    }
+
+    public void OnDestroy()
     {
         thrustSndInstance.Stop();
-        base.Destroy();
     }
 
     public Player(Point2 pos)
@@ -135,5 +157,6 @@ internal class Player : Entity, IRadiusCollider
         thrustSndInstance = ThrustSound.CreateInstance();
         thrustSndInstance.IsLooped = true;
         thrustSndInstance.Volume = 0.8f;
+        PreDestroy += OnDestroy;
     }
 }

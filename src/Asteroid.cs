@@ -105,6 +105,8 @@ class Asteroid : Entity, IRadiusCollider
             Group.HitAdd(hitbox.Position, new Angle(Random(0,360), AngleType.Degree), newSize);
         }
 
+        Entity.AddEntity(new ParticleEmitter(hitbox.Center, 10*size, 100f, 1*size));
+
         Destroy();
         MainGame.AsteroidDestroyed(size, playerHit);
     }

@@ -31,8 +31,10 @@ abstract partial class Entity
     }
     public static void RemoveEntity(Entity ent)
     {
+        ent.PreDestroy?.Invoke();
+
         int index = ent.index;
-        
+
         //Removing from entities
         //If entity was updated, update position should be lowered
         if (index <= updatePosition) --updatePosition;
@@ -54,15 +56,24 @@ abstract partial class Entity
         //Updating indexing
         for (int i = index; i < ents.Count; ++i)
             --(ents[i].index);
-
+        
+        ent.PostDestroy?.Invoke();
     }
+    
     public static void RemoveAll()
     {
         foreach (GroupBase group in GroupBase.AllGroups)
             group.Clear();
         
         updatePosition = 0;
-        ents.Clear();
+
+        while (ents.Count > 0)
+        {
+            Entity ent = ents.First();
+            ent.PreDestroy?.Invoke();
+            RemoveEntity(ent);
+            ent.PostDestroy?.Invoke();
+        }
     }
 }
 
@@ -79,6 +90,9 @@ abstract partial class Entity
     
     public RectangleF Hitbox => hitbox;
     public Texture2D? Texture => texture;
+
+    protected event Action PreDestroy;
+    protected event Action PostDestroy;
     
     protected abstract void Update(GameTime gameTime);
 
@@ -95,7 +109,7 @@ abstract partial class Entity
 
     public Entity() : this(new RectangleF(0, 0, 0, 0), null) { }
 
-    public virtual void Destroy()
+    public void Destroy()
     {
         if (destroyed) return;
         destroyed = true;
@@ -103,7 +117,7 @@ abstract partial class Entity
         //Removing entity from all groups that its belongs to
         foreach (var kv in group_index)
             kv.Key.Remove(this);
-
+        
         RemoveEntity(this);
     }
     

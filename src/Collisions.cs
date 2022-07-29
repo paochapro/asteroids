@@ -117,7 +117,6 @@ static class Collisions
                 }
             });
         }
-        
         Bullet.PlayerBullets.Iterate(PlayerBullet);
         Bullet.UfoBullets.Iterate(UfoBullet);
     }

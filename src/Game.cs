@@ -54,20 +54,27 @@ class MainGame : Game
     };
     
     //UI
-    private const string livesText = "{LIVES_ICON}x";
+    private const string livesText = "x";
     private const int uiBottomOffset = 10;
+    const int livesContainerElementOffset = -4;
+    private static readonly Point shipImageSize = new(32, 32);
     private static readonly Point buttonSize = new(200,65);
+    private static Label scoreLabel;
+    private static Label livesLabel;
+    private static Container livesContainer;
+    private static Image shipImage;
 
     //Game
     public static Group<Player> Players => Asteroids.Player.Group;
     
-    private const int startingAsteroids = 4;
+    private const int startingAsteroids = 5;
     private const int maxAsteroids = 10;
-    private const int startLives = 5;
+    private const int startLives = 1;
     private const int ufoScore = 50;
     private const float spawnSafetyRadius = 150f;
     private const float gameOverDelay = 2f;
     private const float respawnDelay = 1f;
+    private const int oneUpScore = 10000;
     
     private static readonly int[] asteroidSizeScores = { 100, 50, 20 };
     private static readonly Range<int> lowChance_ufoSpawnRange = new(2, 8);
@@ -78,9 +85,8 @@ class MainGame : Game
     private static int phase;
     private static int lives;
     private static int score;
+    private static int oneUpsCollected;
     private static bool trySpawnPlayer;
-    private static Label scoreLabel;
-    private static Label livesLabel;
     private static SoundEffect crashSound;
 
     private static void PlayCrashSound()
@@ -111,6 +117,14 @@ class MainGame : Game
     private static void ObjectDestroyed(int givenScore)
     {
         score += givenScore;
+        
+        if (score > oneUpScore * (oneUpsCollected+1))
+        {
+            ++lives;
+            ++oneUpsCollected;
+            UpdateLivesLabel();
+        }
+
         UpdateScoreLabel();
         
         if (Asteroid.Group.Count == 0 && Ufo.Group.Count == 0)
@@ -169,9 +183,6 @@ class MainGame : Game
 
     private static void SpawnPlayer()
     {
-        Ufo.Group.Clear();
-        NextUfoSpawn();
-        
         Player.Group.Clear();
         Player.Group.Add(new Player(spawn));
     }
@@ -179,14 +190,15 @@ class MainGame : Game
     private static void GameOver()
     {
         State = GameState.Menu;
+        Entity.RemoveAll();
+        Event.ClearEvents();
     }
     
     public static void Death()
     {
         if (PlayerInvincible) return;
-        
-        Console.WriteLine("death!");
-        Player.Group.Iterate(p => p.Destroy());
+
+        Player.Group.Iterate(p => p.Hit());
 
         --lives;
         UpdateLivesLabel();
@@ -213,8 +225,9 @@ class MainGame : Game
     public static void Reset()
     {
         trySpawnPlayer = false;
+        oneUpsCollected = 0;
         lives = startLives;
-        phase = 0;
+        phase = -1;
         score = 0;
         
         Entity.RemoveAll();
@@ -246,22 +259,23 @@ class MainGame : Game
         
         Player.ThrusterAnimation = new Animation(thrusterSheet, true);
         Player.ThrustSound = Assets.Load<SoundEffect>("thrust");
-        Bullet.ShootSound = Assets.Load<SoundEffect>("shot");
+        
+        Player.ShootSound = Assets.Load<SoundEffect>("shot");
+        Ufo.ShootSound = Assets.Load<SoundEffect>("shot");
+        Ufo.MovingSound = Assets.Load<SoundEffect>("ufo_moving");
+        
         crashSound = Assets.Load<SoundEffect>("crash1");
         
         Ufo.BigUfoTexture = Assets.LoadTexture("ufo_big");
         Ufo.SmallUfoTexture = Assets.LoadTexture("ufo_small");
         
         CreateUi();
-        Reset();
 
         State = GameState.Menu;
     }
 
     protected override void Initialize()
     {
-        //TODO: particles
-        
         Window.AllowUserResizing = resizable;
         Window.Title = gameName;
         IsMouseVisible = true;
@@ -283,6 +297,8 @@ class MainGame : Game
 
         if (trySpawnPlayer && CanPlayerSpawn())
         {
+            Ufo.Group.Iterate(ufo => ufo.Destroy());
+            ObjectDestroyed(0);
             SpawnPlayer();
             trySpawnPlayer = false;
         }
@@ -313,10 +329,16 @@ class MainGame : Game
         
         if (DebugMode)
         {
-            if (Input.Pressed(Keys.I))
+            if (Input.Pressed(Keys.D1))
             {
                 PlayerInvincible = !PlayerInvincible;
-                Console.WriteLine("Players is " + (PlayerInvincible ? "" : "not ") + "invincible");            
+                Console.WriteLine("Players is " + (PlayerInvincible ? "" : "not ") + "invincible");  
+            }
+            
+            if (Input.Pressed(Keys.D2))
+            {
+                lives = lives == 9999 ? 5 : 9999;
+                UpdateLivesLabel();
             }
 
             float zoom = Input.Mouse.ScrollWheelValue / 2000f + 1f;
@@ -362,13 +384,21 @@ class MainGame : Game
         scoreLabel.text = text;
         scoreLabel.Position = new Point((int)center(0, Screen.X/2, measure.X), (int)(Screen.Y - measure.Y - uiBottomOffset));
     }
-
+    
     public static void UpdateLivesLabel()
     {
         string text = livesText + lives.ToString();
         Vector2 measure = UI.Font.MeasureString(text);
         livesLabel.text = text;
-        livesLabel.Position = new Point((int)center(Screen.X/2, Screen.X, measure.X), (int)(Screen.Y - measure.Y - uiBottomOffset));
+
+        //Lives container
+        int containerWidth = shipImage.Size.X + (int)measure.X + livesContainerElementOffset;
+        Point containerSize = new Point(containerWidth, shipImage.Size.Y);
+        Vector2 containerPos = (Vector2)new Point2(center(Screen.X/2, Screen.X, containerWidth), Screen.Y - uiBottomOffset - containerSize.Y);
+        
+        livesContainer = new Container(new Rectangle(containerPos.ToPoint(), containerSize), livesContainerElementOffset, 1);
+        livesContainer.Add(shipImage);
+        livesContainer.Add(livesLabel);
     }
     
     private static void CreateUi()
@@ -376,9 +406,13 @@ class MainGame : Game
         //Game
         scoreLabel = new Label(Point.Zero, "0", Color.White, 1);
         livesLabel = new Label(Point.Zero, livesText + "-", Color.White, 1);
+        
+        shipImage = new Image(Player.PlayerTexture, new Rectangle(Point.Zero, shipImageSize), 1);
+        shipImage.Rotation = new Angle(90f, AngleType.Degree);
         UI.Add(scoreLabel);
         UI.Add(livesLabel);
-        
+        UI.Add(shipImage);
+
         //Menu
         //Start button
         Point pos = new(center(0, screen.X, buttonSize.X), screen.Y - percent(screen.Y, 20) - buttonSize.Y);
@@ -395,7 +429,7 @@ class MainGame : Game
         Point titlePos = new Point( (int)center(0, screen.X, measure.X), percent(screen.Y, 20));
         UI.Add(new Label(titlePos, gameName, Color.White, 0));
     }
-
+    
     public MainGame() : base()
     {
         graphics = new GraphicsDeviceManager(this);

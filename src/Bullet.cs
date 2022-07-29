@@ -13,8 +13,6 @@ class Bullet : Entity, IRadiusCollider
     public static Group<Bullet> UfoBullets { get; private set; } = new();
     private Group<Bullet> bulletsGroup;
     
-    public static SoundEffect ShootSound;
-
     public Point2 CollisionOrigin { get; private set; }
     public float CollisionRadius { get; init; } = collisionRadius;
     private const float collisionRadius = 2f;
@@ -56,17 +54,5 @@ class Bullet : Entity, IRadiusCollider
     {
         bulletsGroup = playerBullet ? PlayerBullets : UfoBullets;
         this.moveDirection = moveDirection.NormalizedCopy();
-
-        SoundEffectInstance shot = ShootSound.CreateInstance();
-
-        Range<float> playerPitch = new(-0.2f, 0.2f);
-        Range<float> ufoPitch = new(0.4f, 0.6f);
-        float playerVolume = 0.4f;
-        float ufoVolume = 0.7f;
-
-        shot.Pitch = playerBullet ? RandomRange(playerPitch) : RandomRange(ufoPitch);
-        shot.Volume = playerBullet ? playerVolume : ufoVolume;
-        
-        shot.Play();
     }
 }

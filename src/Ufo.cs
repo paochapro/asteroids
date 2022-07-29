@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Audio;
 using MonoGame.Extended;
 
 namespace Asteroids;
@@ -11,6 +12,8 @@ class Ufo : Entity, IRadiusCollider
 
     public static Texture2D BigUfoTexture;
     public static Texture2D SmallUfoTexture;
+    public static SoundEffect ShootSound;
+    public static SoundEffect MovingSound;
     
     private const float bigSize = 64;
     private const float boundsImmersion = 0.5f;
@@ -27,6 +30,8 @@ class Ufo : Entity, IRadiusCollider
     private const float shootInterval = 2f;
     private float shootTimer = 0f;
 
+    public SoundEffectInstance movingSndInstance;
+
     //Diagonal movement
     private readonly Range<float> diagonalMovementIntervalRange = new(1f, 3f);
     private float diagonalMovementTimer = 0f;
@@ -35,7 +40,7 @@ class Ufo : Entity, IRadiusCollider
     private readonly Range<float> diagonalChangeDelayRange = new(1f, 5f);
     private float diagonalChangeDelay;
     private float diagonalChangeTimer;
-    
+
     public Ufo(Vector2 side, bool small)
         : base(new RectangleF(Point2.Zero, Point2.Zero), small ? SmallUfoTexture : BigUfoTexture)
     {
@@ -65,6 +70,14 @@ class Ufo : Entity, IRadiusCollider
         hitbox.Position = pos;
         moveDirection = (-side).NormalizedCopy();
         RandomizeDiagonalMovement();
+        
+        //Sound
+        movingSndInstance = MovingSound.CreateInstance();
+        movingSndInstance.IsLooped = true;
+        movingSndInstance.Pitch = RandomFloat(-0.1f, 0.1f);
+        movingSndInstance.Play();
+
+        PreDestroy += OnDestroy;
     }
 
     private void Move()
@@ -117,6 +130,12 @@ class Ufo : Entity, IRadiusCollider
 
     private void ShootLoop()
     {
+        if (MainGame.Players.Count == 0)
+        {
+            shootTimer = 0f;
+            return;
+        }
+        
         if (shootTimer > shootInterval)
         {
             Shoot();
@@ -127,15 +146,19 @@ class Ufo : Entity, IRadiusCollider
     
     private void Shoot()
     {
-        if (MainGame.Players.Count == 0)
-            return;
-        
         Point2 playerCenter = (MainGame.Players.All.Single() as IRadiusCollider).CollisionOrigin;
         
         shootDirection = playerCenter - hitbox.Center;
         shootDirection.Normalize();
 
         Bullet.UfoBullets.Add(new Bullet(hitbox.Center, shootDirection, false));
+        
+        SoundEffectInstance shot = ShootSound.CreateInstance();
+        Range<float> ufoPitch = new(0.4f, 0.6f);
+        float ufoVolume = 0.6f;
+        shot.Pitch = RandomRange(ufoPitch);
+        shot.Volume = ufoVolume;
+        shot.Play();
     }
 
     protected override void Draw(SpriteBatch spriteBatch)
@@ -151,7 +174,14 @@ class Ufo : Entity, IRadiusCollider
 
     public void Hit(bool playerHit)
     {
+        Entity.AddEntity(new ParticleEmitter(hitbox.Center, 10, 50f, 2f));
         Destroy();
         MainGame.UfoDestroyed(playerHit);
+    }
+
+    public void OnDestroy()
+    {
+        movingSndInstance.Stop();
+        Console.WriteLine("OnDestroy ufo!");
     }
 }
