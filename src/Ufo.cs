@@ -182,6 +182,5 @@ class Ufo : Entity, IRadiusCollider
     public void OnDestroy()
     {
         movingSndInstance.Stop();
-        Console.WriteLine("OnDestroy ufo!");
     }
 }

@@ -69,7 +69,7 @@ class MainGame : Game
     
     private const int startingAsteroids = 5;
     private const int maxAsteroids = 10;
-    private const int startLives = 1;
+    private const int startLives = 5;
     private const int ufoScore = 50;
     private const float spawnSafetyRadius = 150f;
     private const float gameOverDelay = 2f;
